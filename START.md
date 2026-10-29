@@ -118,6 +118,9 @@ The frontend defaults to:
 ```env
 VITE_DATA_MODE=api
 VITE_API_URL=http://localhost:5000/api
+
+# Optional: Google OAuth 2.0 Sign-In
+# VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 ```
 
 ---
