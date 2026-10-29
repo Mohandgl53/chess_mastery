@@ -88,11 +88,12 @@ export class PracticeService {
   async startSession(userId: string, requestedTheme?: string) {
     const profile = await playerMemoryRepository.getOrCreateProfile(userId);
 
-    // Cancel or complete any abandoned active session older than 2 hours
+    // Cancel or complete any abandoned active session older than 2 hours,
+    // or abandon existing session if player explicitly requested a different theme drill
     const existingActive = await practiceRepository.getActiveSessionForPlayer(profile.id);
     if (existingActive) {
       const hoursOld = (Date.now() - existingActive.startedAt.getTime()) / (1000 * 60 * 60);
-      if (hoursOld > 2) {
+      if (hoursOld > 2 || (requestedTheme && existingActive.targetTheme !== requestedTheme)) {
         await practiceRepository.updateSession(existingActive.id, { status: 'ABANDONED' });
       } else {
         // Return existing active session with next puzzle
