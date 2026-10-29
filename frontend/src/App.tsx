@@ -5,6 +5,8 @@ import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { HomePage } from './pages/HomePage';
 import { LandingPage } from './pages/LandingPage';
 import { LearnPage } from './pages/LearnPage';
@@ -159,6 +161,18 @@ function AppInner() {
 
   if (currentRoute === '/register') {
     return <RegisterPage onNavigate={handleNavigate} />;
+  }
+
+  if (currentRoute.startsWith('/verify-email')) {
+    const query = currentRoute.includes('?') ? currentRoute.split('?')[1] : window.location.search.replace('?', '');
+    const token = new URLSearchParams(query).get('token') || undefined;
+    return <VerifyEmailPage onNavigate={handleNavigate} token={token} />;
+  }
+
+  if (currentRoute.startsWith('/reset-password')) {
+    const query = currentRoute.includes('?') ? currentRoute.split('?')[1] : window.location.search.replace('?', '');
+    const token = new URLSearchParams(query).get('token') || undefined;
+    return <ResetPasswordPage onNavigate={handleNavigate} token={token} />;
   }
 
   if (currentRoute.startsWith('/login')) {

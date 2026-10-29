@@ -135,6 +135,7 @@ export interface SafeUser {
   email: string;
   displayName: string;
   role: 'USER' | 'ADMIN';
+  emailVerified?: boolean;
   createdAt: Date;
 }
 

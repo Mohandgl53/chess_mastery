@@ -24,7 +24,14 @@ const envSchema = z.object({
     .min(16, 'JWT_SECRET must be at least 16 characters')
     .default('chess_mastery_secure_jwt_secret_key_change_in_production_2026'),
   JWT_EXPIRES_IN: z.string().default('15m'),
-  GOOGLE_CLIENT_ID: z.string().optional()
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  // Email Service (Resend)
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().default('onboarding@resend.dev'),
+  REQUIRE_EMAIL_VERIFICATION: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true')
 });
 
 const parsed = envSchema.safeParse(process.env);

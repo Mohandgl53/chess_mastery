@@ -9,6 +9,8 @@ import {
   me,
   forgotPassword,
   resetPassword,
+  verifyEmail,
+  resendVerification,
   refreshToken,
   revokeToken
 } from '../controllers/auth.controller.js';
@@ -21,6 +23,8 @@ import {
   googleAuthSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
+  resendVerificationSchema,
   refreshTokenSchema,
   changePasswordSchema
 } from '../validators/auth.schemas.js';
@@ -32,6 +36,12 @@ authRoutes.post('/register', authRateLimiter, validateBody(registerSchema), regi
 
 // POST /api/auth/login — protected with rate limiting & Zod validation
 authRoutes.post('/login', authRateLimiter, validateBody(loginSchema), login);
+
+// POST /api/auth/verify-email — Verify account email via single-use token
+authRoutes.post('/verify-email', authRateLimiter, validateBody(verifyEmailSchema), verifyEmail);
+
+// POST /api/auth/resend-verification — Request fresh verification link
+authRoutes.post('/resend-verification', authRateLimiter, validateBody(resendVerificationSchema), resendVerification);
 
 // POST /api/auth/google — Google OAuth 2.0 / OpenID Connect login
 authRoutes.post('/google', authRateLimiter, validateBody(googleAuthSchema), googleLogin);

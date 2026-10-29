@@ -1,11 +1,13 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/database.js';
+import { env } from '../config/env.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { sessionRepository } from '../repositories/session.repository.js';
 import { jwtService } from './jwt.service.js';
 import { googleAuthService } from './google-auth.service.js';
-import { ConflictError, UnauthorizedError, BadRequestError } from '../utils/errors.js';
+import { emailService } from './email.service.js';
+import { ConflictError, UnauthorizedError, BadRequestError, ForbiddenError } from '../utils/errors.js';
 import type { RegisterInput, LoginInput } from '../validators/auth.schemas.js';
 import type { SafeAuthResponse, SafeUser, SafeProfile, AuthenticatedUser } from '../types/index.js';
 import type { User, PlayerProfile } from '@prisma/client';
@@ -13,6 +15,7 @@ import type { User, PlayerProfile } from '@prisma/client';
 const BCRYPT_COST = 12;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
+const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function hashToken(rawToken: string): string {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
@@ -28,6 +31,7 @@ function buildSafeUser(user: User): SafeUser {
     email: user.email,
     displayName: user.displayName,
     role: user.role,
+    emailVerified: user.emailVerified,
     createdAt: user.createdAt
   };
 }
@@ -47,7 +51,7 @@ function buildSafeProfile(profile: PlayerProfile): SafeProfile {
 }
 
 export interface AuthResult {
-  safeResponse: SafeAuthResponse;
+  safeResponse: SafeAuthResponse & { devVerificationToken?: string };
   rawToken: string;
 }
 
@@ -87,11 +91,31 @@ export class AuthService {
     // Create JWT token pair for API/mobile clients
     const tokens = await jwtService.generateTokenPair(authUser);
 
+    // Generate secure single-use email verification token
+    const rawVerificationToken = generateRawToken();
+    const verificationTokenHash = hashToken(rawVerificationToken);
+    const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
+
+    await prisma.emailVerificationToken.create({
+      data: {
+        tokenHash: verificationTokenHash,
+        userId: user.id,
+        expiresAt: verificationExpiresAt,
+        used: false
+      }
+    });
+
+    // Send verification email via Resend
+    emailService.sendVerificationEmail(user.email, user.displayName, rawVerificationToken).catch((err) => {
+      console.warn('[AuthService] Could not send verification email:', err?.message || err);
+    });
+
     return {
       safeResponse: {
         user: buildSafeUser(user as User),
         profile: buildSafeProfile(profile),
-        tokens
+        tokens,
+        devVerificationToken: process.env.NODE_ENV !== 'production' ? rawVerificationToken : undefined
       },
       rawToken
     };
@@ -113,6 +137,14 @@ export class AuthService {
     const passwordValid = await bcrypt.compare(input.password, user.passwordHash);
     if (!passwordValid) {
       throw genericError;
+    }
+
+    const isVerificationEnforced = env.REQUIRE_EMAIL_VERIFICATION || process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+    if (isVerificationEnforced && !user.emailVerified && !user.googleId) {
+      throw new ForbiddenError(
+        'Your email address has not been verified yet. Please check your inbox or request a new verification email.',
+        'EMAIL_NOT_VERIFIED'
+      );
     }
 
     const profile = await userRepository.findProfileByUserId(user.id);
@@ -184,11 +216,15 @@ export class AuthService {
         email: googleUser.email,
         displayName: googleUser.displayName,
         googleId: googleUser.googleId,
-        passwordHash: null
+        passwordHash: null,
+        emailVerified: true
       });
       user = created;
       profile = created.profile;
     } else {
+      if (!user.emailVerified) {
+        user = await userRepository.setEmailVerified(user.id, true);
+      }
       profile = await userRepository.findProfileByUserId(user.id);
     }
 
@@ -267,7 +303,11 @@ export class AuthService {
       }
     });
 
-    // In production, an email would be dispatched.
+    // Send password reset email via Resend
+    emailService.sendPasswordResetEmail(user.email, user.displayName, rawToken).catch((err) => {
+      console.warn('[AuthService] Could not send password reset email:', err?.message || err);
+    });
+
     // In development / test mode, we expose the token to allow test assertions.
     return {
       message: 'If an account with this email exists, a password reset link has been dispatched.',
@@ -314,6 +354,11 @@ export class AuthService {
       })
     ]);
 
+    const user = await userRepository.findById(resetRecord.userId);
+    if (user) {
+      emailService.sendPasswordChangedNotification(user.email, user.displayName).catch(() => {});
+    }
+
     return { message: 'Password has been successfully updated. Please sign in with your new password.' };
   }
 
@@ -335,7 +380,81 @@ export class AuthService {
     const newHash = await bcrypt.hash(newPassword, BCRYPT_COST);
     await userRepository.updatePassword(userId, newHash);
 
+    emailService.sendPasswordChangedNotification(user.email, user.displayName).catch(() => {});
+
     return { message: 'Password updated successfully.' };
+  }
+
+  /**
+   * Verify an email address using a valid, unexpired single-use verification token.
+   */
+  async verifyEmail(rawToken: string): Promise<{ message: string }> {
+    const tokenHash = hashToken(rawToken);
+
+    const record = await prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      include: { user: true }
+    });
+
+    if (!record || record.used || record.expiresAt <= new Date()) {
+      throw new BadRequestError('Invalid or expired email verification token.', 'INVALID_VERIFICATION_TOKEN');
+    }
+
+    await prisma.$transaction([
+      prisma.emailVerificationToken.update({
+        where: { id: record.id },
+        data: { used: true }
+      }),
+      prisma.user.update({
+        where: { id: record.userId },
+        data: { emailVerified: true }
+      })
+    ]);
+
+    return { message: 'Email address verified successfully. You may now sign in.' };
+  }
+
+  /**
+   * Resend verification email to an unverified user.
+   */
+  async resendVerification(email: string): Promise<{ message: string; devVerificationToken?: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userRepository.findByEmail(normalizedEmail);
+
+    const genericMessage = 'If an unverified account with this email exists, a verification link has been dispatched.';
+
+    if (!user || user.emailVerified) {
+      crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+      return { message: genericMessage };
+    }
+
+    // Invalidate existing unused verification tokens
+    await prisma.emailVerificationToken.updateMany({
+      where: { userId: user.id, used: false },
+      data: { used: true }
+    });
+
+    const rawToken = generateRawToken();
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
+
+    await prisma.emailVerificationToken.create({
+      data: {
+        tokenHash,
+        userId: user.id,
+        expiresAt,
+        used: false
+      }
+    });
+
+    emailService.sendVerificationEmail(user.email, user.displayName, rawToken).catch((err) => {
+      console.warn('[AuthService] Could not resend verification email:', err?.message || err);
+    });
+
+    return {
+      message: genericMessage,
+      devVerificationToken: process.env.NODE_ENV !== 'production' ? rawToken : undefined
+    };
   }
 
   /**

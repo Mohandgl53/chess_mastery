@@ -64,6 +64,26 @@ export const authApi = {
   },
 
   /**
+   * Verify email address using the token received in the verification email.
+   */
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    return apiClient<{ message: string }>('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    });
+  },
+
+  /**
+   * Request a new verification email for an unverified account.
+   */
+  async resendVerification(email: string): Promise<{ message: string }> {
+    return apiClient<{ message: string }>('/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+  },
+
+  /**
    * Logout current session. Server deletes session and clears the cookie.
    */
   async logout(): Promise<void> {

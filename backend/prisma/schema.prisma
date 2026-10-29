@@ -85,20 +85,22 @@ enum RecommendationStatus {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  passwordHash        String?
-  displayName         String
-  role                Role                 @default(USER)
-  googleId            String?              @unique
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  profile             PlayerProfile?
-  games               Game[]
-  sessions            Session[]
-  lessonProgress      UserLessonProgress[]
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
+  id                      String                   @id @default(cuid())
+  email                   String                   @unique
+  passwordHash            String?
+  displayName             String
+  role                    Role                     @default(USER)
+  googleId                String?                  @unique
+  emailVerified           Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  profile                 PlayerProfile?
+  games                   Game[]
+  sessions                Session[]
+  lessonProgress          UserLessonProgress[]
+  refreshTokens           RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@index([email])
   @@index([googleId])
@@ -132,6 +134,19 @@ model RefreshToken {
 }
 
 model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model EmailVerificationToken {
   id        String   @id @default(cuid())
   tokenHash String   @unique
   userId    String

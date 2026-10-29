@@ -23,7 +23,14 @@ export class UserRepository {
   async linkGoogleAccount(userId: string, googleId: string): Promise<User> {
     return prisma.user.update({
       where: { id: userId },
-      data: { googleId }
+      data: { googleId, emailVerified: true }
+    });
+  }
+
+  async setEmailVerified(userId: string, emailVerified = true): Promise<User> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified }
     });
   }
 
@@ -45,7 +52,13 @@ export class UserRepository {
    * If either creation fails, the entire operation is rolled back.
    */
   async createWithProfile(
-    userData: { email: string; passwordHash?: string | null; displayName: string; googleId?: string | null },
+    userData: {
+      email: string;
+      passwordHash?: string | null;
+      displayName: string;
+      googleId?: string | null;
+      emailVerified?: boolean;
+    },
     profileData?: {
       rating?: number;
       gamesPlayed?: number;
@@ -60,7 +73,8 @@ export class UserRepository {
           email: userData.email,
           passwordHash: userData.passwordHash ?? null,
           displayName: userData.displayName,
-          googleId: userData.googleId ?? null
+          googleId: userData.googleId ?? null,
+          emailVerified: userData.emailVerified ?? (userData.googleId ? true : false)
         }
       });
 

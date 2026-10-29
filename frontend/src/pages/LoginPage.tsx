@@ -112,6 +112,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
       if (err instanceof ApiError) {
         if (err.status === 401) {
           setError('Invalid email or password.');
+        } else if (err.code === 'EMAIL_NOT_VERIFIED' || (err.status === 403 && err.message.toLowerCase().includes('verif'))) {
+          setError('Your email is not verified yet. Please check your inbox or click "Resend verification" below.');
         } else if (err.status === 0) {
           setError('Cannot connect to server. Please check your connection.');
         } else {

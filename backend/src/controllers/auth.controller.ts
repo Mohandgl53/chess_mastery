@@ -141,6 +141,24 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
   }
 }
 
+export async function verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await authService.verifyEmail(req.body.token);
+    res.status(200).json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await authService.resendVerification(req.body.email);
+    res.status(200).json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const tokenPair = await jwtService.rotateRefreshToken(req.body.refreshToken);
