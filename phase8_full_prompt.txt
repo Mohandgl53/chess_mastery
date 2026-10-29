@@ -1,0 +1,1678 @@
+<USER_REQUEST>
+# PHASE 8 — ADVANCED PERSONALIZED LEARNING & COACH INTELLIGENCE
+
+You are now implementing PHASE 8 of the Chess Coach application.
+
+IMPORTANT:
+Phase 8 must build on the already-verified systems.
+
+Do NOT rebuild the chess engine.
+Do NOT replace Stockfish.
+Do NOT replace chess.js.
+Do NOT replace Player Memory.
+Do NOT replace RAG.
+Do NOT replace Adaptive Practice.
+Do NOT replace the Equal-level bot.
+Do NOT introduce Next.js.
+Do NOT introduce a second chess engine.
+Do NOT create a second vector database.
+
+Before implementation, audit the existing codebase and reuse existing infrastructure.
+
+==================================================
+CURRENT VERIFIED FOUNDATION
+==================================================
+
+The following systems have already been verified:
+
+1. Chess.js
+   - legal move validation
+   - chess state
+   - FEN
+   - PGN
+   - castling
+   - en passant
+   - promotion
+   - check/checkmate
+
+2. Stockfish 19 Lite WASM
+   - real engine evaluation
+   - best move
+   - candidate moves
+   - centipawn loss
+   - move classification
+   - bot analysis
+   - perspective normalization
+
+3. Game Analysis
+   - actual move-by-move analysis
+   - best move
+   - played move
+   - evaluation
+   - classification
+   - explanation
+
+4. Equal Bot
+   - dynamic calibration
+   - player-rating-aware difficulty
+   - legal moves
+   - actual Stockfish-based play
+   - bot moves also analyzed
+
+5. Chessboard
+   - React state synchronized with chess.js
+   - FEN synchronization
+   - Stockfish synchronization
+   - desktop/mobile verification
+   - stable board layout
+
+6. Analytics
+   - player accuracy
+   - opponent/bot accuracy
+   - move breakdown
+   - ACPL
+   - opening classification
+   - tactical themes
+   - 11 skill competencies
+
+7. RAG
+   - PostgreSQL + pgvector
+   - semantic retrieval
+   - keyword/hybrid retrieval
+   - chess-aware context
+
+8. Player Memory
+   - weaknesses
+   - strengths
+   - skills
+   - learning evidence
+   - snapshots
+   - recommendations
+
+9. Theme Detection
+   - Fork
+   - Pin
+   - Skewer
+   - Hanging Piece
+   - Back Rank
+   - Late Castling
+   - Center Control
+   - Open File
+   - other verified themes
+
+10. Adaptive Practice
+   - adaptive planner
+   - theme mastery
+   - difficulty adaptation
+   - spaced repetition
+   - practice attempts
+   - practice evidence
+   - personalized recommendations
+
+11. Authentication
+   - server-side sessions
+   - authenticated API
+   - ownership enforcement
+   - CSRF/origin protection
+
+12. Browser verification
+   - real frontend interaction
+   - real chess moves
+   - real bot game
+   - real analysis
+   - real progress updates
+   - mobile verification
+
+The latest verification has already established the system as VERIFIED.
+
+Phase 8 should use these systems as trusted foundations.
+
+==================================================
+PHASE 8 OBJECTIVE
+==================================================
+
+Transform Chess Coach from:
+
+"an application that analyzes games and recommends practice"
+
+into:
+
+"a personalized chess learning coach that understands the player's actual chess behavior and continuously guides what they should learn, practice, review, and improve."
+
+The target loop becomes:
+
+PLAY
+ ↓
+ANALYZE
+ ↓
+UNDERSTAND MISTAKES
+ ↓
+PLAYER MEMORY
+ ↓
+ADAPTIVE TRAINING
+ ↓
+PRACTICE
+ ↓
+LEARN CONCEPT
+ ↓
+PRACTICE AGAIN
+ ↓
+REASSESS
+ ↓
+PERSONALIZED COACH
+ ↓
+PLAY AGAIN
+
+Phase 8 should make the Coach intelligently connect these systems.
+
+==================================================
+CORE PRINCIPLE
+==================================================
+
+The system must separate:
+
+CHESS TRUTH
+from
+PLAYER UNDERSTANDING
+from
+COACH EXPLANATION.
+
+Authority hierarchy:
+
+1. chess.js
+   Chess legality/state
+
+2. Stockfish
+   Objective chess evaluation
+
+3. Theme Detector
+   Tactical/positional pattern detection
+
+4. Game Analytics
+   Objective game statistics
+
+5. Player Memory
+   Historical player behavior
+
+6. Adaptive Training Planner
+   Training decisions based on stored evidence
+
+7. RAG
+   Chess knowledge retrieval
+
+8. LLM
+   Explanation, teaching, conversation
+
+The LLM MUST NEVER become the authority for chess truth.
+
+==================================================
+STEP 0 — COMPLETE PHASE 8 AUDIT
+==================================================
+
+Before writing code:
+
+Inspect:
+
+FRONTEND:
+- /play
+- /analyze
+- /practice
+- /puzzles
+- /learn
+- /learn/:lessonId
+- /progress
+- /settings
+- Coach UI/components
+- GameReviewModal
+- analysis commentary
+- recommendation UI
+
+BACKEND:
+- coach services
+- RAG services
+- player memory
+- adaptive practice
+- game analysis
+- analytics
+- recommendations
+- puzzle services
+- lesson services
+
+DATABASE:
+- PlayerProfile
+- Game
+- GameMove
+- GameAnalysis
+- LearningEvidence
+- Weakness
+- Strength
+- SkillSnapshot
+- TrainingRecommendation
+- ThemeMastery
+- PracticeSession
+- PracticeAttempt
+- Puzzle
+- KnowledgeDocument
+- KnowledgeChunk
+- LLM-related models if present
+
+Determine what already exists.
+
+Do NOT create duplicate functionality.
+
+Produce an implementation map before changing architecture.
+
+==================================================
+PHASE 8 FEATURE 1 — INTELLIGENT COACH CONTEXT
+==================================================
+
+The Coach should receive a structured context containing:
+
+CURRENT CHESS STATE
+- FEN
+- side to move
+- legal moves
+- current move
+- recent moves
+
+ENGINE FACTS
+- evaluation
+- best move
+- candidate moves
+- tactical information
+
+GAME CONTEXT
+- opening
+- move number
+- game phase
+- previous mistakes
+- current game result if known
+
+PLAYER MEMORY
+- weaknesses
+- strengths
+- skill scores
+- theme mastery
+- recent practice
+- recent game evidence
+- training recommendations
+
+RAG CONTEXT
+- relevant chess concepts
+- relevant lessons
+- tactical explanations
+- opening knowledge
+
+USER QUESTION
+
+The context must be structured.
+
+Do not dump arbitrary text into the LLM.
+
+==================================================
+PHASE 8 FEATURE 2 — CONTEXT-AWARE COACH
+==================================================
+
+The Coach should understand what is happening on the board.
+
+Example:
+
+Player makes a move that Stockfish identifies as a mistake.
+
+The Coach should be able to explain:
+
+1. What the player played
+2. What the stronger move was
+3. Why the move was problematic
+4. What tactical/positional idea was missed
+5. How this connects to the player's known weaknesses
+6. What the player should practice
+
+Example structure:
+
+"You played Bxf7+.
+
+The stronger move was Nf3.
+
+The issue is that your bishop exchange allows...
+
+This connects to your recent difficulty with piece coordination.
+
+A useful next step is to practice..."
+
+Every chess fact must originate from trusted systems.
+
+==================================================
+PHASE 8 FEATURE 3 — PERSONALIZED EXPLANATIONS
+==================================================
+
+The same chess position may need different explanations for different players.
+
+Use player memory.
+
+Example:
+
+BEGINNER:
+Explain the basic tactical idea.
+
+INTERMEDIATE:
+Explain calculation and candidate moves.
+
+STRONGER PLAYER:
+Explain positional consequences and alternatives.
+
+Do NOT simply change wording based on a fake rating.
+
+Use actual PlayerProfile/skill data.
+
+If the player has:
+
+Tactics = 42
+Opening = 78
+Endgame = 65
+
+the coach should adapt emphasis accordingly.
+
+Do not invent statistics.
+
+==================================================
+PHASE 8 FEATURE 4 — WEAKNESS-AWARE COACHING
+==================================================
+
+If the player has a verified weakness:
+
+PIN
+
+and asks:
+
+"Why did I miss this?"
+
+The coach should connect the explanation to PIN concepts.
+
+But it must NOT say:
+
+"You always miss pins."
+
+unless historical data actually supports that statement.
+
+Use cautious evidence-based language:
+
+"You have missed pin patterns in several recent positions."
+
+Only if the stored evidence supports it.
+
+==================================================
+PHASE 8 FEATURE 5 — COACH → PRACTICE BRIDGE
+==================================================
+
+The Coach should be able to recommend actionable practice.
+
+Example:
+
+Player asks:
+
+"How do I get better at forks?"
+
+Coach response:
+
+"Your recent games show some difficulty spotting forks. I recommend a short fork practice session."
+
+Provide an actual action:
+
+[Practice Forks]
+
+Clicking it should open the real adaptive practice system.
+
+Do NOT create fake links.
+
+==================================================
+PHASE 8 FEATURE 6 — COACH → LESSON BRIDGE
+==================================================
+
+When a concept needs explanation before practice:
+
+Coach can recommend:
+
+LEARN → PRACTICE
+
+Example:
+
+Weakness:
+PIN
+
+Flow:
+
+Coach
+ ↓
+Pin explanation
+ ↓
+Relevant lesson
+ ↓
+Practice pins
+ ↓
+Mastery update
+
+Use existing lesson infrastructure.
+
+If the lesson doesn't exist:
+
+Do not fabricate a database reference.
+
+Provide a controlled fallback explanation using RAG.
+
+==================================================
+PHASE 8 FEATURE 7 — GAME REVIEW COACH
+==================================================
+
+Improve the post-game review.
+
+After a game, the player should receive:
+
+1. Game summary
+2. Most important mistakes
+3. Best move opportunities
+4. Tactical themes
+5. Strongest aspect
+6. Weakest aspect
+7. Learning takeaway
+8. Recommended practice
+9. Optional lesson recommendation
+
+The review should prioritize important learning moments.
+
+Do NOT list every tiny inaccuracy equally.
+
+==================================================
+PHASE 8 FEATURE 8 — TOP 3 LEARNING MOMENTS
+==================================================
+
+Create a deterministic method for selecting the most important moments.
+
+Potential inputs:
+
+- centipawn loss
+- blunder severity
+- tactical theme
+- game phase
+- repeated weakness
+- strategic importance
+- whether the position teaches a concept
+
+The selection must be deterministic.
+
+Example:
+
+1. Critical blunder on move 24
+2. Missed fork on move 17
+3. Poor opening decision on move 8
+
+The LLM may explain the selected moments.
+
+It must not choose them based solely on free-form generation.
+
+==================================================
+PHASE 8 FEATURE 9 — PATTERN DETECTION ACROSS GAMES
+==================================================
+
+Use existing Player Memory and analytics to identify recurring patterns.
+
+Examples:
+
+Repeated:
+- missed forks
+- late castling
+- hanging pieces
+- poor opening development
+- weak king safety
+- time pressure
+- poor endgames
+
+The system should distinguish:
+
+ONE-OFF ERROR
+
+from:
+
+RECURRING PATTERN
+
+Do not label something a recurring weakness after one occurrence.
+
+Use existing confidence/occurrence mechanisms.
+
+==================================================
+PHASE 8 FEATURE 10 — PERSONALIZED TRAINING PLAN
+==================================================
+
+Create a higher-level training plan using:
+
+- skill scores
+- weaknesses
+- strengths
+- theme mastery
+- practice history
+- spaced repetition
+- recent games
+- recommendations
+
+Example:
+
+THIS WEEK'S FOCUS
+
+Tactics
+- Pins
+- Forks
+
+Opening
+- Development
+
+Endgame
+- King and pawn
+
+Do not hard-code this plan.
+
+It must be generated from player data.
+
+==================================================
+PHASE 8 FEATURE 11 — TRAINING BALANCE
+==================================================
+
+Do not train only weaknesses.
+
+The training planner should balance:
+
+WEAKNESS REMEDIATION
++
+SKILL DEVELOPMENT
++
+SPACED REVIEW
++
+STRENGTH MAINTENANCE
++
+VARIETY
+
+For example:
+
+60% weakness work
+25% skill development
+15% review
+
+These percentages are examples only.
+
+Inspect existing algorithms first.
+
+If introducing a new ratio, document it as a deterministic heuristic.
+
+==================================================
+PHASE 8 FEATURE 12 — ADAPTIVE DAILY SESSION
+==================================================
+
+Create a personalized daily training session.
+
+It should determine:
+
+- session length
+- themes
+- difficulty
+- lesson/practice mixture
+- review items
+
+based on actual player data.
+
+Example:
+
+TODAY'S TRAINING
+
+1. Warm-up
+   2 easy tactical puzzles
+
+2. Weakness
+   4 pin puzzles
+
+3. Reinforcement
+   2 fork puzzles
+
+4. Concept
+   1 short king-safety lesson
+
+5. Challenge
+   1 harder tactical puzzle
+
+The exact composition must be generated by the planner.
+
+Do not hard-code the above sequence.
+
+==================================================
+PHASE 8 FEATURE 13 — TRAINING SESSION ADAPTATION
+==================================================
+
+During a session, adapt based on actual performance.
+
+Example:
+
+Player solves 3 PIN puzzles easily.
+
+→ Increase difficulty.
+
+Player fails 2 difficult PIN puzzles.
+
+→ Return to reinforcement level.
+
+Player repeatedly succeeds.
+
+→ Introduce mixed tactical positions.
+
+Do not blindly follow a fixed playlist.
+
+Reuse Phase 7 adaptive practice.
+
+==================================================
+PHASE 8 FEATURE 14 — EXPLANATION DEPTH
+==================================================
+
+Allow explanation depth to adapt.
+
+Possible levels:
+
+QUICK
+STANDARD
+DEEP
+
+Quick:
+one or two sentences.
+
+Standard:
+concept + reason.
+
+Deep:
+candidate moves + alternatives + positional consequences.
+
+Do not ask the LLM to calculate chess truth.
+
+Stockfish provides objective lines.
+
+LLM explains them.
+
+==================================================
+PHASE 8 FEATURE 15 — INTERACTIVE COACH QUESTIONS
+==================================================
+
+The Coach should support questions such as:
+
+"Why is this a mistake?"
+
+"What should I have looked for?"
+
+"What tactic did I miss?"
+
+"How could I have found this move?"
+
+"Why is castling important here?"
+
+"What should I practice?"
+
+"Am I improving?"
+
+"Why do I keep losing pieces?"
+
+The backend should select the appropriate trusted context.
+
+==================================================
+PHASE 8 FEATURE 16 — COACH MEMORY
+==================================================
+
+Coach conversations should use Player Memory where appropriate.
+
+But do NOT store every conversation as permanent player memory.
+
+Only persist structured learning information when it is objectively useful and safe.
+
+Examples:
+
+Useful:
+Player repeatedly asks about pins.
+
+Potential learning signal:
+interest in pin concepts.
+
+Not useful:
+Every casual sentence in the chat.
+
+Do not pollute Player Memory.
+
+==================================================
+PHASE 8 FEATURE 17 — PLAYER PROGRESS EXPLANATION
+==================================================
+
+The Progress page should become more understandable.
+
+Instead of only showing:
+
+Tactics: 48
+
+also explain:
+
+"Tactics is currently one of your main training priorities because recent game and practice evidence shows difficulty spotting tactical opportunities."
+
+Only display this if supported by actual evidence.
+
+Likewise:
+
+"Your fork performance has improved over your recent practice sessions."
+
+Only if historical data supports it.
+
+==================================================
+PHASE 8 FEATURE 18 — TREND ANALYSIS
+==================================================
+
+Where enough historical data exists, calculate trends.
+
+Examples:
+
+- tactical accuracy trend
+- practice accuracy trend
+- blunder frequency
+- theme mastery
+- skill progression
+
+Use actual stored historical snapshots.
+
+Do NOT calculate trends from a single point.
+
+If insufficient data:
+
+Display:
+
+"Not enough games yet."
+
+Do not fabricate a trend.
+
+==================================================
+PHASE 8 FEATURE 19 — COACH SAFETY AGAINST HALLUCINATION
+==================================================
+
+Implement strict grounding.
+
+Prompt structure should separate:
+
+TRUSTED CHESS STATE
+TRUSTED ENGINE FACTS
+TRUSTED PLAYER MEMORY
+RETRIEVED KNOWLEDGE
+USER QUESTION
+
+The LLM must not invent:
+
+- best moves
+- evaluations
+- weaknesses
+- strengths
+- accuracy
+- number of games
+- number of mistakes
+- puzzle results
+- mastery scores
+- recommendations
+
+If required information is unavailable:
+
+say that it is unavailable.
+
+==================================================
+PHASE 8 FEATURE 20 — RAG INTEGRATION
+==================================================
+
+Use RAG when the player asks conceptual questions.
+
+Examples:
+
+"What is a pin?"
+
+"How do I improve king safety?"
+
+"Why are open files important?"
+
+"What is the Italian Game?"
+
+RAG should provide knowledge.
+
+Player Memory should provide personalization.
+
+Stockfish should provide current-position truth.
+
+These sources must remain separate.
+
+==================================================
+PHASE 8 FEATURE 21 — CURRENT POSITION + RAG
+==================================================
+
+When asking about a current position:
+
+Use:
+
+Current FEN
++
+Stockfish facts
++
+relevant RAG concept
++
+Player context
+
+Example:
+
+Position contains a pin.
+
+Stockfish:
+best move = ...
+
+Theme detector:
+PIN
+
+RAG:
+pin concept
+
+Player memory:
+pin weakness
+
+Coach:
+explains the current pin and connects it to the player's training.
+
+==================================================
+PHASE 8 FEATURE 22 — PERSONALIZED COACH UI
+==================================================
+
+Inspect the existing Coach UI.
+
+Improve it without destroying the current design.
+
+Potential sections:
+
+Coach message
+
+Why this matters
+
+Your pattern
+
+Try this
+
+[Practice]
+
+[Learn]
+
+Keep it clean.
+
+Do not turn the interface into a dashboard full of cards.
+
+The chessboard remains the primary interface during game analysis.
+
+==================================================
+PHASE 8 FEATURE 23 — ANALYSIS + COACH SIDE PANEL
+==================================================
+
+On /analyze:
+
+The user should be able to inspect:
+
+Played move
+Best move
+Evaluation
+Classification
+Explanation
+
+and optionally ask:
+
+"Why?"
+
+"How could I find this?"
+
+"What should I learn from this?"
+
+The Coach should answer using the exact analyzed position.
+
+==================================================
+PHASE 8 FEATURE 24 — POST-GAME EXPERIENCE
+==================================================
+
+After game completion:
+
+Show:
+
+GAME REVIEW
+
+Performance summary
+
+Key moments
+
+What went well
+
+What to improve
+
+Training recommendation
+
+Coach explanation
+
+Possible actions:
+
+[Analyze Game]
+
+[Practice Weakness]
+
+[Learn Concept]
+
+[Play Again]
+
+Every action must connect to real routes/data.
+
+==================================================
+PHASE 8 FEATURE 25 — DATA PROVENANCE
+==================================================
+
+Every personalized statement must be traceable.
+
+For example:
+
+"Pins are a weakness"
+
+must be traceable to:
+
+Weakness
++
+LearningEvidence
+
+"Your practice accuracy improved"
+
+must be traceable to:
+
+PracticeAttempt history
+
+"You often miss tactical opportunities"
+
+must be traceable to:
+
+GameAnalysis/LearningEvidence
+
+Do not generate unsupported personalization.
+
+==================================================
+PHASE 8 FEATURE 26 — API DESIGN
+==================================================
+
+Inspect existing API conventions.
+
+Add only necessary endpoints.
+
+Potential endpoints:
+
+GET /api/coach/context
+POST /api/coach/question
+GET /api/training/plan
+GET /api/training/today
+GET /api/game-review/:gameId
+GET /api/player/trends
+
+Exact endpoints may differ.
+
+Do not duplicate existing endpoints.
+
+All endpoints must:
+
+- authenticate
+- validate input
+- enforce ownership
+- use Zod
+- return typed responses
+
+==================================================
+PHASE 8 FEATURE 27 — PERFORMANCE
+==================================================
+
+Do not run Stockfish unnecessarily.
+
+Do not run RAG unnecessarily.
+
+Do not invoke LLM on every board move.
+
+Use:
+
+Stockfish → objective analysis
+
+RAG → relevant knowledge retrieval
+
+LLM → explanation
+
+Cache/reuse data where appropriate.
+
+Avoid recalculating full player history unnecessarily.
+
+==================================================
+PHASE 8 FEATURE 28 — ERROR HANDLING
+==================================================
+
+Handle:
+
+- LLM unavailable
+- RAG unavailable
+- Stockfish unavailable
+- API failure
+- authentication failure
+- missing player memory
+- insufficient game history
+- missing lesson
+- missing puzzle
+- malformed FEN
+- invalid game
+- network timeout
+
+The core chess functionality must remain usable even if the LLM is unavailable.
+
+For example:
+
+Stockfish analysis should still work.
+
+==================================================
+PHASE 8 FEATURE 29 — API/MOCK MODE
+==================================================
+
+Maintain:
+
+VITE_DATA_MODE=api
+VITE_DATA_MODE=mock
+
+API mode:
+real backend data only.
+
+Mock mode:
+deterministic fixtures only.
+
+Never silently fall back from API to mock.
+
+==================================================
+PHASE 8 FEATURE 30 — SECURITY
+==================================================
+
+Verify:
+
+- authentication
+- ownership
+- session security
+- CSRF/origin protection
+- Zod validation
+- rate limiting
+- no playerId trust from client
+- no cross-user player memory access
+- no cross-user game access
+- no cross-user training plans
+- no unauthorized coach context
+
+==================================================
+PHASE 8 FEATURE 31 — AUTOMATED TESTING
+==================================================
+
+Create deterministic tests for:
+
+A. Coach context
+- correct FEN
+- correct engine facts
+- correct player memory
+- correct RAG context
+
+B. Personalization
+- weak player
+- stronger player
+- different weaknesses
+- different skills
+
+C. Recommendation bridge
+- recommendation → practice
+- recommendation → lesson
+
+D. Game review
+- key moment selection
+- repeated weakness detection
+- top learning moments
+
+E. Training plan
+- deterministic
+- weakness-aware
+- strength maintenance
+- spaced repetition
+
+F. Trend calculations
+- sufficient history
+- insufficient history
+- improving
+- declining
+- stable
+
+G. LLM grounding
+- cannot invent engine facts
+- cannot invent player statistics
+- cannot invent weaknesses
+
+H. API
+- authentication
+- ownership
+- validation
+
+I. Regression
+Run ALL previous tests.
+
+==================================================
+PHASE 8 FEATURE 32 — REAL BROWSER/MCP VERIFICATION
+==================================================
+
+This is mandatory.
+
+Do not declare Phase 8 complete based only on unit tests.
+
+Use the real application through browser automation.
+
+--------------------------------------------------
+BROWSER TEST 1 — LOGIN
+--------------------------------------------------
+
+Login using development account.
+
+Verify:
+- session
+- navigation
+- protected routes
+
+--------------------------------------------------
+BROWSER TEST 2 — PLAY
+--------------------------------------------------
+
+Play a real game.
+
+Make several legal moves.
+
+Verify:
+- board
+- engine
+- move list
+- coach
+
+--------------------------------------------------
+BROWSER TEST 3 — MAKE A REAL MISTAKE
+--------------------------------------------------
+
+Create or use a position where the player makes a known inferior move.
+
+Verify:
+
+- Stockfish identifies the best move
+- mistake classification appears
+- Coach can explain the actual mistake
+- explanation corresponds to the actual position
+
+--------------------------------------------------
+BROWSER TEST 4 — PLAYER MEMORY
+--------------------------------------------------
+
+After the game:
+
+Open Progress.
+
+Verify actual evidence appears.
+
+--------------------------------------------------
+BROWSER TEST 5 — COACH PERSONALIZATION
+--------------------------------------------------
+
+Ask the Coach about the demonstrated weakness.
+
+Verify the response uses actual player data.
+
+Do not accept generic answers as proof of personalization.
+
+--------------------------------------------------
+BROWSER TEST 6 — COACH → PRACTICE
+--------------------------------------------------
+
+Click the practice recommendation.
+
+Verify it opens the real adaptive practice system.
+
+Solve at least one puzzle.
+
+Verify the result updates Player Memory.
+
+--------------------------------------------------
+BROWSER TEST 7 — COACH → LEARN
+--------------------------------------------------
+
+If a relevant lesson exists:
+
+Click it.
+
+Verify:
+- correct lesson
+- correct theme
+- correct route
+
+If no lesson exists:
+
+Verify graceful RAG explanation/fallback.
+
+--------------------------------------------------
+BROWSER TEST 8 — GAME REVIEW
+--------------------------------------------------
+
+Complete a game.
+
+Open post-game review.
+
+Verify:
+- key moments
+- best moves
+- mistakes
+- learning takeaway
+- training recommendation
+
+--------------------------------------------------
+BROWSER TEST 9 — ANALYZE
+--------------------------------------------------
+
+Open /analyze.
+
+Click several moves.
+
+Ask Coach:
+
+"Why was this a mistake?"
+
+Verify the answer refers to the selected position.
+
+--------------------------------------------------
+BROWSER TEST 10 — PROGRESS
+--------------------------------------------------
+
+Open /progress.
+
+Verify:
+
+- skills
+- trends
+- weaknesses
+- strengths
+- practice progress
+- recommendations
+
+All data must correspond to backend data.
+
+--------------------------------------------------
+BROWSER TEST 11 — REFRESH
+--------------------------------------------------
+
+Refresh relevant pages.
+
+Verify:
+- session remains valid
+- data persists
+- no duplicate records
+- coach context remains correct
+
+--------------------------------------------------
+BROWSER TEST 12 — MOBILE
+--------------------------------------------------
+
+Test at:
+
+375x812
+
+Verify:
+- coach
+- analysis
+- practice
+- progress
+- board
+- controls
+
+No horizontal overflow.
+
+==================================================
+PHASE 8 FEATURE 33 — USER JOURNEY
+==================================================
+
+Perform one complete real user journey:
+
+LOGIN
+ ↓
+PLAY
+ ↓
+MAKE MISTAKE
+ ↓
+ANALYZE
+ ↓
+SEE BEST MOVE
+ ↓
+COACH EXPLAINS
+ ↓
+PLAYER MEMORY UPDATED
+ ↓
+RECOMMENDATION GENERATED
+ ↓
+PRACTICE WEAKNESS
+ ↓
+SOLVE PUZZLE
+ ↓
+MASTERY UPDATED
+ ↓
+PROGRESS UPDATED
+ ↓
+LEARN CONCEPT
+ ↓
+PLAY AGAIN
+
+This is the primary Phase 8 acceptance test.
+
+==================================================
+PHASE 8 FEATURE 34 — VISUAL QA
+==================================================
+
+Inspect the actual rendered application.
+
+Verify:
+
+- typography
+- spacing
+- board prominence
+- coach panel
+- loading states
+- error states
+- empty states
+- recommendation UI
+- practice transitions
+- progress visualization
+- mobile layout
+- accessibility
+- keyboard navigation
+- focus states
+
+Do not redesign the whole application.
+
+Preserve the existing visual identity.
+
+==================================================
+PHASE 8 FEATURE 35 — NO FAKE PERSONALIZATION
+==================================================
+
+This is a hard requirement.
+
+The following are prohibited:
+
+Hard-coded weakness:
+"PIN is your weakness"
+
+Hard-coded recommendation:
+"Practice 10 pins"
+
+Hard-coded progress:
+"You improved 20%"
+
+Hard-coded coach statement:
+"You often miss forks"
+
+unless actual database evidence supports it.
+
+Every personalized statement must have a data source.
+
+==================================================
+PHASE 8 FEATURE 36 — NO LLM AUTHORITY
+==================================================
+
+The LLM cannot decide:
+
+- best move
+- legality
+- classification
+- tactical theme
+- mastery
+- player rating
+- weakness
+- strength
+- training priority
+
+It may explain decisions produced by trusted systems.
+
+==================================================
+PHASE 8 FEATURE 37 — NO OVERENGINEERING
+==================================================
+
+Do NOT:
+
+- introduce microservices
+- introduce another database
+- introduce another vector DB
+- replace Prisma
+- replace PostgreSQL
+- replace Stockfish
+- replace chess.js
+- replace the existing auth architecture
+- replace the existing RAG architecture
+- add Next.js
+
+Keep the existing architecture.
+
+==================================================
+PHASE 8 FEATURE 38 — DATABASE INTEGRITY
+==================================================
+
+Verify:
+
+- no orphan records
+- no duplicate learning evidence
+- no duplicate practice attempts
+- idempotent game processing
+- idempotent training updates
+- correct foreign keys
+- correct ownership
+- safe retries
+
+==================================================
+PHASE 8 FEATURE 39 — OBSERVABILITY
+==================================================
+
+Where practical, provide development diagnostics for:
+
+Coach context
+Engine context
+RAG retrieval
+Player Memory context
+Training decision
+
+Do not expose sensitive internal information to ordinary users.
+
+Development logs should allow debugging:
+
+"What data caused this recommendation?"
+
+==================================================
+PHASE 8 FEATURE 40 — DOCUMENTATION
+==================================================
+
+Document:
+
+1. Coach architecture
+2. Context assembly
+3. Personalization logic
+4. Training-plan logic
+5. Game-review logic
+6. Trend calculations
+7. RAG integration
+8. LLM grounding
+9. API endpoints
+10. Security
+11. Browser verification
+12. Known limitations
+
+==================================================
+PHASE 8 TESTING REQUIREMENTS
+==================================================
+
+Before declaring completion:
+
+Run all previous tests.
+
+Run all Phase 8 tests.
+
+Run backend build.
+
+Run frontend build.
+
+Run real browser tests.
+
+Run mobile browser tests.
+
+Verify database integrity.
+
+Verify no console errors.
+
+Verify no silent API → mock fallback.
+
+==================================================
+PHASE 8 FINAL REPORT
+==================================================
+
+Produce a detailed final report.
+
+Include:
+
+1. EXECUTIVE SUMMARY
+
+2. ARCHITECTURE CHANGES
+
+3. COACH INTELLIGENCE
+
+4. PERSONALIZATION
+
+5. GAME REVIEW
+
+6. TRAINING PLAN
+
+7. RAG INTEGRATION
+
+8. PLAYER MEMORY INTEGRATION
+
+9. API
+
+10. DATABASE
+
+11. SECURITY
+
+12. AUTOMATED TESTS
+
+Report exact numbers.
+
+Example:
+
+Phase 8 tests:
+XX/XX
+
+Previous regression:
+XXX/XXX
+
+Total:
+XXX/XXX
+
+13. BROWSER/MCP TESTS
+
+List:
+
+Login
+Play
+Mistake
+Analysis
+Coach
+Memory
+Practice
+Learn
+Progress
+Refresh
+Mobile
+
+with PASS/FAIL.
+
+14. BUILD
+
+Backend:
+PASS/FAIL
+
+Frontend:
+PASS/FAIL
+
+15. BUGS FOUND
+
+For every bug:
+
+Severity
+Location
+Problem
+Fix
+Regression test
+
+16. KNOWN LIMITATIONS
+
+Be honest.
+
+==================================================
+FINAL VERDICT
+==================================================
+
+Only declare:
+
+PHASE 8 VERIFIED
+
+if:
+
+- all core automated tests pass
+- previous regression tests pass
+- backend builds
+- frontend builds
+- database integrity passes
+- Coach is grounded
+- personalization is real
+- training recommendations are data-driven
+- game review is real
+- trends are real
+- RAG works
+- LLM is not treated as chess authority
+- browser flow works
+- mobile flow works
+- no critical runtime errors
+- no hard-coded personalization
+- no silent mock fallback
+- complete user journey works
+
+Otherwise declare:
+
+PHASE 8 NOT VERIFIED
+
+and list every remaining issue.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do not start Phase 9.
+
+Do not add unrelated features.
+
+Do not claim success because a screen exists.
+
+Do not claim personalization because the UI says "personalized."
+
+Prove that the underlying data actually drives the behavior.
+
+The final question is:
+
+"Does Chess Coach genuinely understand this player's chess history, explain their actual mistakes, identify recurring patterns, recommend what they should learn and practice next, adapt that training based on their performance, and demonstrate the entire process through the real frontend?"
+
+That is the standard for Phase 8.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-03T17:51:01+05:30.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.8 Flash (Medium) to Claude Sonnet 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

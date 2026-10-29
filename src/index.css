@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *, .dark, .dark *));
+
+@theme {
+  --color-brand-green: #81B64C;
+  --color-brand-green-hover: #73A444;
+  --color-brand-green-dark: #588329;
+  
+  --color-brand-blue: #3B82F6;
+  --color-brand-blue-hover: #2563EB;
+  --color-brand-blue-dark: #1D4ED8;
+  
+  --color-brand-amber: #F59E0B;
+  --color-brand-amber-hover: #D97706;
+  --color-brand-amber-dark: #B45309;
+
+  --color-brand-purple: #8B5CF6;
+  --color-brand-rose: #EF4444;
+
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.tracking-tight-display {
+  letter-spacing: -0.03em;
+}
+
+/* ========================================================================= */
+/* Vibrant Chess.com Buttons & Tactile Shadows                              */
+/* ========================================================================= */
+.chess-btn-green {
+  background-color: #81B64C;
+  color: #FFFFFF;
+  font-weight: 800;
+  box-shadow: 0 4px 0 #588329;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.chess-btn-green:hover {
+  background-color: #73A444;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #588329;
+}
+.chess-btn-green:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #588329;
+}
+
+.chess-btn-blue {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+  font-weight: 800;
+  box-shadow: 0 4px 0 #1D4ED8;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.chess-btn-blue:hover {
+  background-color: #2563EB;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #1D4ED8;
+}
+.chess-btn-blue:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #1D4ED8;
+}
+
+.chess-btn-amber {
+  background-color: #F59E0B;
+  color: #000000;
+  font-weight: 800;
+  box-shadow: 0 4px 0 #B45309;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.chess-btn-amber:hover {
+  background-color: #E68A00;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 #B45309;
+}
+.chess-btn-amber:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #B45309;
+}
+
+/* ========================================================================= */
+/* Reusable Light / Dark Theme Surface Tokens                                */
+/* ========================================================================= */
+.chess-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.06), 0 1px 4px -1px rgba(15, 23, 42, 0.04);
+  color: #0F172A;
+}
+.dark .chess-card, [data-theme="dark"] .chess-card {
+  background-color: #1A1F2B;
+  border-color: #273042;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+  color: #F8FAFC;
+}
+
+.chess-card-elevated {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+.dark .chess-card-elevated, [data-theme="dark"] .chess-card-elevated {
+  background-color: #222938;
+  border-color: #2F3B52;
+}
+
+/* Base Body & Scrollbars */
+html {
+  scroll-behavior: smooth;
+}
+
+html, body {
+  min-height: 100vh;
+  background-color: #F0F2F5;
+  color: #0F172A;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark, html[data-theme="dark"], body.dark {
+  background-color: #12151B;
+  color: #F8FAFC;
+  color-scheme: dark;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb, [data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #334155;
+}

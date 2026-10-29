@@ -1,0 +1,587 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum OpponentType {
+  AI
+  HUMAN
+}
+
+enum PlayerColor {
+  WHITE
+  BLACK
+}
+
+enum GameStatus {
+  IN_PROGRESS
+  COMPLETED
+  RESIGNED
+  DRAW
+}
+
+enum GameResult {
+  WIN
+  LOSS
+  DRAW
+  UNKNOWN
+}
+
+enum MoveClassification {
+  BEST
+  EXCELLENT
+  GOOD
+  BOOK
+  INACCURACY
+  MISTAKE
+  BLUNDER
+  MISSED_WIN
+}
+
+enum EvidenceType {
+  POSITIVE
+  NEGATIVE
+}
+
+enum EvidenceSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum WeaknessStatus {
+  ACTIVE
+  IMPROVING
+  RESOLVED
+}
+
+enum RecommendationType {
+  LESSON
+  PUZZLE
+  PRACTICE
+  OPENING_REVIEW
+  ENDGAME_REVIEW
+  GAME_ANALYSIS
+  CONCEPT_REVIEW
+}
+
+enum RecommendationStatus {
+  ACTIVE
+  IN_PROGRESS
+  COMPLETED
+  DISMISSED
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  profile      PlayerProfile?
+  games        Game[]
+  sessions     Session[]
+  lessonProgress UserLessonProgress[]
+
+  @@index([email])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PlayerProfile {
+  id                      String                   @id @default(cuid())
+  userId                  String                   @unique
+  rating                  Int                      @default(800)
+  gamesPlayed             Int                      @default(0)
+  gamesWon                Int                      @default(0)
+  gamesDrawn              Int                      @default(0)
+  gamesLost               Int                      @default(0)
+  currentStreak           Int                      @default(0)
+  longestStreak           Int                      @default(0)
+
+  // Phase 6: Normalized Skill Training Competencies (0-100 score, neutral baseline 50)
+  tacticsSkill            Float                    @default(50.0)
+  calculationSkill        Float                    @default(50.0)
+  openingSkill            Float                    @default(50.0)
+  middlegameSkill         Float                    @default(50.0)
+  endgameSkill            Float                    @default(50.0)
+  positionalSkill         Float                    @default(50.0)
+  kingSafetySkill         Float                    @default(50.0)
+  pieceCoordinationSkill  Float                    @default(50.0)
+  pawnStructureSkill      Float                    @default(50.0)
+  timeManagementSkill     Float                    @default(50.0)
+  blunderPreventionSkill  Float                    @default(50.0)
+  overallTrainingScore    Float                    @default(50.0)
+
+  // Aggregate learning metrics
+  gamesAnalyzed           Int                      @default(0)
+  puzzlesSolved           Int                      @default(0)
+  puzzlesAttempted        Int                      @default(0)
+  lessonsCompleted        Int                      @default(0)
+  totalBlunders           Int                      @default(0)
+  totalMistakes           Int                      @default(0)
+  totalInaccuracies       Int                      @default(0)
+  lastAnalyzedAt          DateTime?
+
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  user                    User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weaknesses              Weakness[]
+  strengths               Strength[]
+  skillSnapshots          SkillSnapshot[]
+  recommendations         TrainingRecommendation[]
+  learningEvidence        LearningEvidence[]
+  practiceSessions        PracticeSession[]
+  practiceAttempts        PracticeAttempt[]
+  themeMasteries          ThemeMastery[]
+}
+
+model Game {
+  id                   String             @id @default(cuid())
+  userId               String
+  opponentName         String
+  opponentType         OpponentType       @default(AI)
+  playerColor          PlayerColor        @default(WHITE)
+  result               GameResult         @default(UNKNOWN)
+  status               GameStatus         @default(IN_PROGRESS)
+  openingName          String?
+  openingEco           String?
+  startedAt            DateTime           @default(now())
+  endedAt              DateTime?
+  finalFen             String?
+  pgn                  String?            @db.Text
+  learningProcessedAt  DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moves                GameMove[]
+  analysis             GameAnalysis?
+  learningEvidence     LearningEvidence[]
+
+  @@index([userId, createdAt])
+}
+
+model GameMove {
+  id               String              @id @default(cuid())
+  gameId           String
+  ply              Int
+  moveNumber       Int
+  color            String
+  san              String
+  uci              String?
+  fen              String
+  evaluation       Float?
+  isMate           Boolean             @default(false)
+  mateIn           Int?
+  classification   MoveClassification?
+  explanation      String?
+  timeSpentSeconds Float?
+  createdAt        DateTime            @default(now())
+  game             Game                @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, ply])
+}
+
+model GameAnalysis {
+  id              String   @id @default(cuid())
+  gameId          String   @unique
+  engineName      String   @default("Stockfish")
+  engineVersion   String
+  analyzedAt      DateTime @default(now())
+  accuracyWhite   Float?
+  accuracyBlack   Float?
+  summary         String?
+  details         Json?
+  analysisVersion Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId])
+}
+
+enum KnowledgeCategory {
+  OPENING
+  MIDDLEGAME
+  ENDGAME
+  TACTICS
+  STRATEGY
+  PAWN_STRUCTURE
+  PIECE_COORDINATION
+  KING_SAFETY
+  CALCULATION
+  PSYCHOLOGY
+  TIME_MANAGEMENT
+  BLUNDER_PREVENTION
+}
+
+enum KnowledgeDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  MASTER
+}
+
+/// A single retrievable chess knowledge chunk for RAG augmentation.
+/// embedding is stored as pgvector vector(768) via raw SQL — Prisma maps it as Unsupported.
+/// fullTextVector (tsvector) is maintained by a trigger for fast keyword search.
+model KnowledgeChunk {
+  id             String              @id @default(cuid())
+  title          String
+  content        String              @db.Text
+  contentHash    String              @unique
+  category       KnowledgeCategory
+  difficulty     KnowledgeDifficulty @default(INTERMEDIATE)
+  tags           String[]
+  source         String?
+  openingEco     String?
+  embedding      Unsupported("vector(768)")?
+  embeddingModel String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([openingEco])
+}
+
+/// Phase 6: Concrete learning evidence derived from game moves, puzzles, or lessons
+model LearningEvidence {
+  id                    String              @id @default(cuid())
+  playerId              String
+  gameId                String?
+  gameMoveId            String?
+  practiceAttemptId     String?
+  category              KnowledgeCategory
+  theme                 String
+  evidenceType          EvidenceType
+  severity              EvidenceSeverity    @default(MEDIUM)
+  engineEvaluationDelta Float?
+  classification        MoveClassification?
+  phase                 String?
+  opening               String?
+  moveSan               String?
+  metadata              Json?
+  createdAt             DateTime            @default(now())
+
+  player                PlayerProfile       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  game                  Game?               @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, category])
+  @@index([playerId, theme])
+  @@index([playerId, createdAt])
+  @@index([gameId])
+}
+
+/// Phase 6: Aggregated weakness pattern with confidence and occurrence tracking
+model Weakness {
+  id              String            @id @default(cuid())
+  playerId        String
+  category        KnowledgeCategory
+  theme           String
+  title           String
+  description     String
+  severity        EvidenceSeverity  @default(MEDIUM)
+  confidence      Float             @default(0.5)
+  evidenceCount   Int               @default(1)
+  occurrenceCount Int               @default(1)
+  status          WeaknessStatus    @default(ACTIVE)
+  firstDetectedAt DateTime          @default(now())
+  lastDetectedAt  DateTime          @default(now())
+  resolvedAt      DateTime?
+  metadata        Json?
+
+  player          PlayerProfile     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, theme])
+  @@index([playerId, status])
+  @@index([playerId, category])
+}
+
+/// Phase 6: Aggregated strength pattern with confidence and repeated evidence
+model Strength {
+  id              String            @id @default(cuid())
+  playerId        String
+  category        KnowledgeCategory
+  theme           String
+  title           String
+  description     String
+  confidence      Float             @default(0.5)
+  evidenceCount   Int               @default(1)
+  occurrenceCount Int               @default(1)
+  firstDetectedAt DateTime          @default(now())
+  lastDetectedAt  DateTime          @default(now())
+  metadata        Json?
+
+  player          PlayerProfile     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, theme])
+  @@index([playerId, category])
+}
+
+/// Phase 6: Historical snapshot of player skill competencies over time
+model SkillSnapshot {
+  id                     String        @id @default(cuid())
+  playerId               String
+  overall                Float
+  tactics                Float
+  calculation            Float
+  opening                Float
+  middlegame             Float
+  endgame                Float
+  positional             Float
+  kingSafety             Float
+  pieceCoordination      Float
+  pawnStructure          Float
+  timeManagement         Float
+  blunderPrevention      Float
+  gamesAnalyzed          Int
+  createdAt              DateTime      @default(now())
+
+  player                 PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, createdAt])
+}
+
+/// Phase 6: Personalized, evidence-grounded training recommendation
+model TrainingRecommendation {
+  id                  String               @id @default(cuid())
+  playerId            String
+  type                RecommendationType   @default(PUZZLE)
+  category            KnowledgeCategory
+  theme               String
+  priority            Float                @default(1.0)
+  title               String
+  reason              String
+  targetSkill         String
+  estimatedDifficulty KnowledgeDifficulty  @default(INTERMEDIATE)
+  source              String?
+  status              RecommendationStatus @default(ACTIVE)
+  metadata            Json?
+  createdAt           DateTime             @default(now())
+  completedAt         DateTime?
+
+  player              PlayerProfile        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, status, priority])
+  @@index([playerId, theme])
+}
+
+enum PracticeSessionType {
+  ADAPTIVE
+  THEME_DRILL
+  WEAKNESS_REVIEW
+  DAILY_TRAINING
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum AttemptResult {
+  CORRECT
+  INCORRECT
+  ABANDONED
+}
+
+/// Phase 7: Individual training session representing a series of adaptive puzzles
+model PracticeSession {
+  id                 String              @id @default(cuid())
+  playerId           String
+  sessionType        PracticeSessionType @default(ADAPTIVE)
+  targetTheme        String
+  plannedItemCount   Int                 @default(5)
+  completedItemCount Int                 @default(0)
+  correctCount       Int                 @default(0)
+  incorrectCount     Int                 @default(0)
+  averageDifficulty  Float               @default(1000.0)
+  status             SessionStatus       @default(ACTIVE)
+  startedAt          DateTime            @default(now())
+  completedAt        DateTime?
+
+  player             PlayerProfile       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  attempts           PracticeAttempt[]
+
+  @@index([playerId, status])
+  @@index([playerId, startedAt])
+}
+
+/// Phase 7: Individual attempt on a puzzle within an adaptive practice session
+model PracticeAttempt {
+  id                   String        @id @default(cuid())
+  playerId             String
+  sessionId            String
+  puzzleId             String
+  theme                String
+  difficultyRating     Int           @default(1000)
+  result               AttemptResult
+  timeSpentMs          Int           @default(0)
+  usedHint             Boolean       @default(false)
+  hintCount            Int           @default(0)
+  moveCount            Int           @default(1)
+  attemptedMoveSan     String?
+  attemptedAt          DateTime      @default(now())
+
+  player               PlayerProfile   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  session              PracticeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, theme])
+  @@index([sessionId])
+  @@index([playerId, attemptedAt])
+}
+
+/// Phase 7: Track historical and progressive mastery of specific chess themes
+model ThemeMastery {
+  id                 String        @id @default(cuid())
+  playerId           String
+  theme              String
+  attemptCount       Int           @default(0)
+  correctCount       Int           @default(0)
+  incorrectCount     Int           @default(0)
+  accuracy           Float         @default(0.0)
+  masteryScore       Float         @default(50.0)
+  recentAccuracy     Float         @default(0.0)
+  streak             Int           @default(0)
+  bestStreak         Int           @default(0)
+  currentDifficulty  Int           @default(1000)
+  lastAttemptedAt    DateTime?
+  lastCorrectAt      DateTime?
+  nextReviewAt       DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  player             PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, theme])
+  @@index([playerId, nextReviewAt])
+}
+
+/// Phase 7: Authoritative Chess Puzzle library
+model Puzzle {
+  id                  String   @id
+  title               String
+  theme               String
+  rating              Int      @default(1000)
+  difficulty          String   @default("Medium")
+  fen                 String
+  playerColor         String   @default("w")
+  solutionMoves       Json
+  hints               Json
+  tacticalExplanation String   @db.Text
+  coachInsight        String?  @db.Text
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([theme, rating])
+  @@index([theme, isActive])
+}
+
+/// Phase 9: Curriculum Module grouping related lessons
+model CurriculumModule {
+  id          String   @id
+  title       String
+  subtitle    String?
+  description String   @db.Text
+  iconName    String   @default("BookOpen")
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lessons     Lesson[]
+}
+
+/// Phase 9: Authoritative Lesson definition
+model Lesson {
+  id              String             @id
+  moduleId        String
+  title           String
+  category        String
+  categoryTitle   String
+  description     String             @db.Text
+  difficulty      String             @default("Beginner")
+  durationMinutes Int                @default(10)
+  orderIndex      Int                @default(0)
+  themeTag        String?
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  module          CurriculumModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  steps           LessonStep[]
+  userProgress    UserLessonProgress[]
+
+  @@index([moduleId, orderIndex])
+  @@index([themeTag])
+  @@index([isActive])
+}
+
+/// Phase 9: Discrete step within a Lesson
+model LessonStep {
+  id               String   @id @default(cuid())
+  lessonId         String
+  stepNumber       Int
+  type             String
+  title            String
+  instruction      String   @db.Text
+  explanation      String   @db.Text
+  fen              String
+  turn             String   @default("w")
+  expectedMoveSan  String?
+  expectedMoveFrom String?
+  expectedMoveTo   String?
+  options          Json?
+  coachTip         String?  @db.Text
+  highlightSquares Json?
+  arrowFromTo      Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  lesson           Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, stepNumber])
+  @@index([lessonId])
+}
+
+/// Phase 9: User's persistent progress through a lesson
+model UserLessonProgress {
+  id                String    @id @default(cuid())
+  userId            String
+  lessonId          String
+  currentStep       Int       @default(1)
+  completed         Boolean   @default(false)
+  completedAt       DateTime?
+  lastInteractedAt  DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson            Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId, completed])
+  @@index([lessonId])
+}
+

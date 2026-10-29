@@ -1,0 +1,171 @@
+<USER_REQUEST>
+# PHASE 8 — ADVANCED PERSONALIZED LEARNING & COACH INTELLIGENCE
+
+You are now implementing PHASE 8 of the Chess Coach application.
+
+IMPORTANT:
+Phase 8 must build on the already-verified systems.
+
+Do NOT rebuild the chess engine.
+Do NOT replace Stockfish.
+Do NOT replace chess.js.
+Do NOT replace Player Memory.
+Do NOT replace RAG.
+Do NOT replace Adaptive Practice.
+Do NOT replace the Equal-level bot.
+Do NOT introduce Next.js.
+Do NOT introduce a second chess engine.
+Do NOT create a second vector database.
+
+Before implementation, audit the existing codebase and reuse existing infrastructure.
+
+==================================================
+CURRENT VERIFIED FOUNDATION
+==================================================
+
+The following systems have already been verified:
+
+1. Chess.js
+   - legal move validation
+   - chess state
+   - FEN
+   - PGN
+   - castling
+   - en passant
+   - promotion
+   - check/checkmate
+
+2. Stockfish 19 Lite WASM
+   - real engine evaluation
+   - best move
+   - candidate moves
+   - centipawn loss
+   - move classification
+   - bot analysis
+   - perspective normalization
+
+3. Game Analysis
+   - actual move-by-move analysis
+   - best move
+   - played move
+   - evaluation
+   - classification
+   - explanation
+
+4. Equal Bot
+   - dynamic calibration
+   - player-rating-aware difficulty
+   - legal moves
+   - actual Stockfish-based play
+   - bot moves also analyzed
+
+5. Chessboard
+   - React state synchronized with chess.js
+   - FEN synchronization
+   - Stockfish synchronization
+   - desktop/mobile verification
+   - stable board layout
+
+6. Analytics
+   - player accuracy
+   - opponent/bot accuracy
+   - move breakdown
+   - ACPL
+   - opening classification
+   - tactical themes
+   - 11 skill competencies
+
+7. RAG
+   - PostgreSQL + pgvector
+   - semantic retrieval
+   - keyword/hybrid retrieval
+   - chess-aware context
+
+8. Player Memory
+   - weaknesses
+   - strengths
+   - skills
+   - learning evidence
+   - snapshots
+<truncated 29449 bytes>
+ckend:
+PASS/FAIL
+
+Frontend:
+PASS/FAIL
+
+15. BUGS FOUND
+
+For every bug:
+
+Severity
+Location
+Problem
+Fix
+Regression test
+
+16. KNOWN LIMITATIONS
+
+Be honest.
+
+==================================================
+FINAL VERDICT
+==================================================
+
+Only declare:
+
+PHASE 8 VERIFIED
+
+if:
+
+- all core automated tests pass
+- previous regression tests pass
+- backend builds
+- frontend builds
+- database integrity passes
+- Coach is grounded
+- personalization is real
+- training recommendations are data-driven
+- game review is real
+- trends are real
+- RAG works
+- LLM is not treated as chess authority
+- browser flow works
+- mobile flow works
+- no critical runtime errors
+- no hard-coded personalization
+- no silent mock fallback
+- complete user journey works
+
+Otherwise declare:
+
+PHASE 8 NOT VERIFIED
+
+and list every remaining issue.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do not start Phase 9.
+
+Do not add unrelated features.
+
+Do not claim success because a screen exists.
+
+Do not claim personalization because the UI says "personalized."
+
+Prove that the underlying data actually drives the behavior.
+
+The final question is:
+
+"Does Chess Coach genuinely understand this player's chess history, explain their actual mistakes, identify recurring patterns, recommend what they should learn and practice next, adapt that training based on their performance, and demonstrate the entire process through the real frontend?"
+
+That is the standard for Phase 8.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-03T17:51:01+05:30.
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.8 Flash (Medium) to Claude Sonnet 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
