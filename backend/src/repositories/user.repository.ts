@@ -67,7 +67,7 @@ export class UserRepository {
       const profile = await tx.playerProfile.create({
         data: {
           userId: user.id,
-          rating: profileData?.rating ?? 800,
+          rating: profileData?.rating ?? 400,
           gamesPlayed: profileData?.gamesPlayed ?? 0,
           gamesWon: profileData?.gamesWon ?? 0,
           gamesDrawn: profileData?.gamesDrawn ?? 0,

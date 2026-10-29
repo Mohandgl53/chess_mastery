@@ -39,7 +39,7 @@ export class UserService {
       email: isOwnerOrAdmin ? user.email : undefined,
       displayName: user.displayName,
       createdAt: user.createdAt,
-      rating: profile?.rating ?? 800,
+      rating: profile?.rating ?? 400,
       gamesPlayed: profile?.gamesPlayed ?? 0,
       gamesWon: profile?.gamesWon ?? 0,
       gamesDrawn: profile?.gamesDrawn ?? 0,

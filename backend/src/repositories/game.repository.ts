@@ -141,6 +141,39 @@ export class GameRepository {
         });
       }
 
+      // 4. Update PlayerProfile statistics and dynamic rating
+      const profile = await tx.playerProfile.findUnique({ where: { userId } });
+      if (profile && input.result) {
+        const isWin = input.result === GameResult.WIN;
+        const isLoss = input.result === GameResult.LOSS;
+        const isDraw = input.result === GameResult.DRAW;
+
+        // Rating delta based on standard provisional Elo adjustment (+/- 16)
+        let ratingDelta = 0;
+        if (isWin) {
+          ratingDelta = 16;
+        } else if (isLoss) {
+          ratingDelta = -16;
+        }
+
+        const newRating = Math.max(100, profile.rating + ratingDelta);
+        const newStreak = isWin ? profile.currentStreak + 1 : 0;
+        const newLongestStreak = Math.max(profile.longestStreak, newStreak);
+
+        await tx.playerProfile.update({
+          where: { id: profile.id },
+          data: {
+            rating: newRating,
+            gamesPlayed: { increment: 1 },
+            ...(isWin ? { gamesWon: { increment: 1 } } : {}),
+            ...(isLoss ? { gamesLost: { increment: 1 } } : {}),
+            ...(isDraw ? { gamesDrawn: { increment: 1 } } : {}),
+            currentStreak: newStreak,
+            longestStreak: newLongestStreak
+          }
+        });
+      }
+
       // Fetch created moves ordered by ply
       const moves = await tx.gameMove.findMany({
         where: { gameId: game.id },

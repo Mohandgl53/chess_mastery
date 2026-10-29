@@ -403,7 +403,7 @@ describe('Security Audit & Hardening Verification Suite', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.user.email).toBe(email);
-      expect(res.body.profile.rating).toBe(800);
+      expect(res.body.profile.rating).toBe(400);
       expect(res.body.profile.gamesPlayed).toBe(0);
 
       // Verify DB records
@@ -412,7 +412,7 @@ describe('Security Audit & Hardening Verification Suite', () => {
 
       const profile = await prisma.playerProfile.findUnique({ where: { userId: users[0].id } });
       expect(profile).toBeDefined();
-      expect(profile!.rating).toBe(800);
+      expect(profile!.rating).toBe(400);
 
       // Subsequent login with the same Google ID does NOT duplicate the user or profile
       const res2 = await request(app)
@@ -422,6 +422,72 @@ describe('Security Audit & Hardening Verification Suite', () => {
 
       const usersAfter = await prisma.user.findMany({ where: { email } });
       expect(usersAfter.length).toBe(1);
+
+      // Clean up
+      await prisma.user.delete({ where: { email } });
+    });
+
+    it('initializes fresh user with rating 400 and adjusts rating dynamically on game completion', async () => {
+      const email = `rating-test-${Date.now()}@test.com`;
+      const regRes = await request(app)
+        .post('/api/auth/register')
+        .send({ email, displayName: 'Rating Player', password: testPassword });
+
+      expect(regRes.status).toBe(201);
+      expect(regRes.body.profile.rating).toBe(400);
+
+      const userId = regRes.body.user.id;
+      const token = regRes.body.tokens.accessToken;
+
+      // Save a game where player wins -> rating increases above 400
+      const gameWinRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          opponentName: 'Bot Beginner',
+          opponentType: 'AI',
+          playerColor: 'WHITE',
+          result: 'WIN',
+          status: 'COMPLETED',
+          finalFen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
+          moves: [
+            { ply: 1, moveNumber: 1, color: 'w', san: 'e4', uci: 'e2e4', fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1' },
+            { ply: 2, moveNumber: 1, color: 'b', san: 'e5', uci: 'e7e5', fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2' }
+          ]
+        });
+
+      expect(gameWinRes.status).toBe(201);
+
+      // Verify profile rating has increased above 400
+      const profileAfterWin = await prisma.playerProfile.findUnique({ where: { userId } });
+      expect(profileAfterWin!.rating).toBe(416);
+      expect(profileAfterWin!.gamesPlayed).toBe(1);
+      expect(profileAfterWin!.gamesWon).toBe(1);
+
+      // Save a game where player loses -> rating decreases below current
+      const gameLossRes = await request(app)
+        .post('/api/games')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          opponentName: 'Bot Master',
+          opponentType: 'AI',
+          playerColor: 'WHITE',
+          result: 'LOSS',
+          status: 'COMPLETED',
+          finalFen: 'rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2',
+          moves: [
+            { ply: 1, moveNumber: 1, color: 'w', san: 'd4', uci: 'd2d4', fen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1' },
+            { ply: 2, moveNumber: 1, color: 'b', san: 'd5', uci: 'd7d5', fen: 'rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 0 2' }
+          ]
+        });
+
+      expect(gameLossRes.status).toBe(201);
+
+      // Verify profile rating has decreased
+      const profileAfterLoss = await prisma.playerProfile.findUnique({ where: { userId } });
+      expect(profileAfterLoss!.rating).toBe(400);
+      expect(profileAfterLoss!.gamesPlayed).toBe(2);
+      expect(profileAfterLoss!.gamesLost).toBe(1);
 
       // Clean up
       await prisma.user.delete({ where: { email } });

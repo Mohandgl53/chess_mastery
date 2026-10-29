@@ -33,7 +33,7 @@ function buildDefaultProfile(): AuthProfile {
   return {
     id: 'local-profile-id',
     userId: 'local-user-id',
-    rating: 1200,
+    rating: 400,
     gamesPlayed: 0,
     gamesWon: 0,
     gamesDrawn: 0,

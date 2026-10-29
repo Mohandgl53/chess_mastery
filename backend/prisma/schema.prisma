@@ -147,7 +147,7 @@ model PasswordResetToken {
 model PlayerProfile {
   id                      String                   @id @default(cuid())
   userId                  String                   @unique
-  rating                  Int                      @default(800)
+  rating                  Int                      @default(400)
   gamesPlayed             Int                      @default(0)
   gamesWon                Int                      @default(0)
   gamesDrawn              Int                      @default(0)

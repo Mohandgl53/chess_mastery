@@ -36,7 +36,7 @@ export class PlayerMemoryRepository {
     return prisma.playerProfile.create({
       data: {
         userId,
-        rating: 800,
+        rating: 400,
         tacticsSkill: 50.0,
         calculationSkill: 50.0,
         openingSkill: 50.0,

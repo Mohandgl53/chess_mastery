@@ -138,7 +138,7 @@ export class AuthService {
       : {
           id: '',
           userId: user.id,
-          rating: 800,
+          rating: 400,
           gamesPlayed: 0,
           gamesWon: 0,
           gamesDrawn: 0,
@@ -213,7 +213,7 @@ export class AuthService {
       : {
           id: '',
           userId: user.id,
-          rating: 800,
+          rating: 400,
           gamesPlayed: 0,
           gamesWon: 0,
           gamesDrawn: 0,
