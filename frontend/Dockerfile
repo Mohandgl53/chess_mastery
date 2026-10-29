@@ -13,6 +13,7 @@ ARG VITE_API_URL
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 ENV VITE_API_URL=$VITE_API_URL
 
+RUN rm -f .env .env.local
 RUN npm run build
 
 # Nginx Production Server

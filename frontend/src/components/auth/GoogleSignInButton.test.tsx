@@ -83,3 +83,4 @@ describe('GoogleSignInButton component', () => {
     expect(typeof initCall.callback).toBe('function');
   });
 });
+
