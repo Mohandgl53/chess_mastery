@@ -391,6 +391,137 @@ describe('Security Audit & Hardening Verification Suite', () => {
       const user = await prisma.user.findUnique({ where: { email } });
       expect(user!.googleId).toBe('gid-554433');
     });
+
+    it('creates exactly one user and the expected starting PlayerProfile for a new Google user', async () => {
+      const ts = Date.now();
+      const email = `new-google-user-${ts}@test.com`;
+      const googleId = `gid-unique-${ts}`;
+      const mockToken = `mock-google-token-:${email}:${googleId}:New Player`;
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: mockToken });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.email).toBe(email);
+      expect(res.body.profile.rating).toBe(800);
+      expect(res.body.profile.gamesPlayed).toBe(0);
+
+      // Verify DB records
+      const users = await prisma.user.findMany({ where: { email } });
+      expect(users.length).toBe(1);
+
+      const profile = await prisma.playerProfile.findUnique({ where: { userId: users[0].id } });
+      expect(profile).toBeDefined();
+      expect(profile!.rating).toBe(800);
+
+      // Subsequent login with the same Google ID does NOT duplicate the user or profile
+      const res2 = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: mockToken });
+      expect(res2.status).toBe(200);
+
+      const usersAfter = await prisma.user.findMany({ where: { email } });
+      expect(usersAfter.length).toBe(1);
+
+      // Clean up
+      await prisma.user.delete({ where: { email } });
+    });
+
+    it('rejects tokens issued for a different Google Client ID', async () => {
+      const wrongAudienceToken = 'mock-google-token-wrong-audience';
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: wrongAudienceToken });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_AUDIENCE');
+    });
+
+    it('rejects expired Google ID tokens', async () => {
+      const expiredToken = 'mock-google-token-expired';
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: expiredToken });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('TOKEN_EXPIRED');
+    });
+
+    it('rejects malformed or invalid Google ID tokens', async () => {
+      const malformedToken = 'mock-google-token-malformed';
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: malformedToken });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIAL');
+    });
+
+    it('failed Google authentication never creates an authenticated session or cookie', async () => {
+      const beforeSessions = await prisma.session.count();
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: 'mock-google-token-unverified' });
+
+      expect(res.status).toBe(401);
+      // No session cookie should be set
+      const cookies = res.headers['set-cookie'] || [];
+      const sessionCookie = cookies.find((c: string) => c.includes('chess_coach_session'));
+      expect(sessionCookie).toBeUndefined();
+
+      // No new DB session should be created
+      const afterSessions = await prisma.session.count();
+      expect(afterSessions).toBe(beforeSessions);
+    });
+
+    it('validates authentication cookies follow security policy (HttpOnly, SameSite)', async () => {
+      const tsCookie = Date.now();
+      const emailCookie = `cookie-check-${tsCookie}@test.com`;
+      const mockToken = `mock-google-token-:${emailCookie}:gid-cookie-${tsCookie}:Cookie Tester`;
+      const res = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: mockToken });
+
+      expect(res.status).toBe(200);
+      const cookies = res.headers['set-cookie'];
+      expect(cookies).toBeDefined();
+      const cookieStr = Array.isArray(cookies) ? cookies.join('; ') : cookies;
+      expect(cookieStr).toContain('HttpOnly');
+      expect(cookieStr).toContain('SameSite=Lax');
+      expect(cookieStr).toContain('Path=/');
+
+      // Clean up
+      await prisma.user.delete({ where: { email: emailCookie } });
+    });
+
+    it('allows Google login from Docker development origin http://localhost and Vite http://localhost:5173', async () => {
+      // Test with Docker origin http://localhost
+      const tsDocker = Date.now();
+      const emailDocker = `docker-origin-${tsDocker}@test.com`;
+      const gidDocker = `gid-dock-${tsDocker}`;
+      const resDocker = await request(app)
+        .post('/api/auth/google')
+        .set('Origin', 'http://localhost')
+        .send({ credential: `mock-google-token-:${emailDocker}:${gidDocker}:Docker User` });
+
+      expect(resDocker.status).toBe(200);
+      expect(resDocker.body.user.email).toBe(emailDocker);
+
+      // Test with Vite origin http://localhost:5173
+      const tsVite = Date.now() + 1;
+      const emailVite = `vite-origin-${tsVite}@test.com`;
+      const gidVite = `gid-vite-${tsVite}`;
+      const resVite = await request(app)
+        .post('/api/auth/google')
+        .set('Origin', 'http://localhost:5173')
+        .send({ credential: `mock-google-token-:${emailVite}:${gidVite}:Vite User` });
+
+      expect(resVite.status).toBe(200);
+      expect(resVite.body.user.email).toBe(emailVite);
+
+      // Clean up
+      await prisma.user.deleteMany({ where: { email: { in: [emailDocker, emailVite] } } });
+    });
   });
 
   // =========================================================================

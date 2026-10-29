@@ -69,6 +69,8 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
           // Clear any previous rendered button if re-rendering
           if (containerRef.current) {
             containerRef.current.innerHTML = '';
+            const clientW = containerRef.current.clientWidth;
+            const buttonWidth = clientW > 0 ? Math.min(400, Math.max(200, clientW)) : 220;
             window.google.accounts.id.renderButton(containerRef.current, {
               type: 'standard',
               theme: 'outline',
@@ -76,7 +78,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
               text: text === 'signup_with' ? 'signup_with' : 'signin_with',
               shape: 'rectangular',
               logo_alignment: 'left',
-              width: containerRef.current.clientWidth > 0 ? containerRef.current.clientWidth : 200
+              width: buttonWidth
             });
           }
 

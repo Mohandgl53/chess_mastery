@@ -21,32 +21,44 @@ export class GoogleAuthService {
    * Validates cryptographic signature, issuer, expiry, audience, and email verification status.
    */
   async verifyIdToken(idToken: string): Promise<VerifiedGoogleUser> {
-    // Test mode / Mock branch for automated testing without outbound HTTP
-    if (env.NODE_ENV === 'test' || idToken.startsWith('mock-google-token-')) {
+    if (!idToken || typeof idToken !== 'string') {
+      throw new UnauthorizedError('Google ID token is required', 'INVALID_CREDENTIAL');
+    }
+
+    // Automated test mode ONLY — never allows mock tokens in development or production
+    if (env.NODE_ENV === 'test' && idToken.startsWith('mock-google-token-')) {
       if (idToken === 'mock-google-token-unverified') {
         throw new UnauthorizedError('Google email is not verified', 'UNVERIFIED_EMAIL');
       }
-      if (idToken.startsWith('mock-google-token-')) {
-        const parts = idToken.split(':');
-        const email = parts[1] || 'googleuser@example.com';
-        const googleId = parts[2] || 'mock-google-id-12345';
-        const displayName = parts[3] || 'Google User';
-        return {
-          googleId,
-          email: email.toLowerCase().trim(),
-          displayName
-        };
+      if (idToken === 'mock-google-token-wrong-audience') {
+        throw new UnauthorizedError('Google token was issued for a different client ID', 'INVALID_AUDIENCE');
       }
+      if (idToken === 'mock-google-token-expired') {
+        throw new UnauthorizedError('Google ID token has expired', 'TOKEN_EXPIRED');
+      }
+      if (idToken === 'mock-google-token-malformed') {
+        throw new UnauthorizedError('Malformed Google ID token', 'INVALID_CREDENTIAL');
+      }
+      const parts = idToken.split(':');
+      const email = parts[1] || 'googleuser@example.com';
+      const googleId = parts[2] || 'mock-google-id-12345';
+      const displayName = parts[3] || 'Google User';
+      return {
+        googleId,
+        email: email.toLowerCase().trim(),
+        displayName
+      };
     }
 
-    if (!idToken || typeof idToken !== 'string') {
-      throw new UnauthorizedError('Google ID token is required', 'INVALID_CREDENTIAL');
+    // Require GOOGLE_CLIENT_ID to be configured
+    if (!env.GOOGLE_CLIENT_ID) {
+      throw new UnauthorizedError('Google authentication is not configured on this server', 'GOOGLE_AUTH_NOT_CONFIGURED');
     }
 
     try {
       const ticket = await this.client.verifyIdToken({
         idToken,
-        audience: env.GOOGLE_CLIENT_ID || undefined
+        audience: env.GOOGLE_CLIENT_ID
       });
 
       const payload = ticket.getPayload();
@@ -58,6 +70,11 @@ export class GoogleAuthService {
       const validIssuers = ['accounts.google.com', 'https://accounts.google.com'];
       if (!payload.iss || !validIssuers.includes(payload.iss)) {
         throw new UnauthorizedError('Invalid Google token issuer', 'INVALID_ISSUER');
+      }
+
+      // Security check: Audience must match our Google Client ID
+      if (payload.aud !== env.GOOGLE_CLIENT_ID) {
+        throw new UnauthorizedError('Google token was issued for a different client ID', 'INVALID_AUDIENCE');
       }
 
       // Security check: Email MUST be verified by Google to prevent account takeover
