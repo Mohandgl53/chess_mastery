@@ -8,11 +8,13 @@ import { playerRoutes } from './player.routes.js';
 import { practiceRoutes } from './practice.routes.js';
 import { curriculumRoutes } from './curriculum.routes.js';
 import { puzzleRoutes } from './puzzles.routes.js';
+import { adminRoutes } from './admin.routes.js';
 
 export const apiRouter = Router();
 
 apiRouter.use('/health', healthRoutes);
 apiRouter.use('/auth', authRoutes);
+apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/users', userRoutes);
 apiRouter.use('/games', gameRoutes);
 apiRouter.use('/coach', coachRoutes);

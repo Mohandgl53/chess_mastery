@@ -25,6 +25,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
+  // Requests authenticated via Authorization: Bearer cannot be forged via browser HTML form submissions
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    return next();
+  }
+
   const origin = req.headers.origin;
 
   // If no Origin header is present (e.g., server-to-server, curl, automated tests)

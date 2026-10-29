@@ -3,7 +3,7 @@ import { NotFoundError } from '../utils/errors.js';
 
 export interface SafeUserProfile {
   id: string;
-  email: string;
+  email?: string;
   displayName: string;
   createdAt: Date;
   rating: number;
@@ -16,7 +16,11 @@ export interface SafeUserProfile {
 }
 
 export class UserService {
-  async getUserProfile(userId: string): Promise<SafeUserProfile> {
+  async getUserProfile(
+    userId: string,
+    requestingUserId?: string,
+    requestingUserRole?: 'USER' | 'ADMIN'
+  ): Promise<SafeUserProfile> {
     const user = await userRepository.findById(userId);
     if (!user) {
       throw new NotFoundError('User not found', 'USER_NOT_FOUND');
@@ -24,9 +28,15 @@ export class UserService {
 
     const profile = await userRepository.findProfileByUserId(userId);
 
+    // Only expose email if the user is viewing their own profile or an admin is viewing it
+    const isOwnerOrAdmin =
+      !requestingUserId ||
+      requestingUserId === user.id ||
+      requestingUserRole === 'ADMIN';
+
     return {
       id: user.id,
-      email: user.email,
+      email: isOwnerOrAdmin ? user.email : undefined,
       displayName: user.displayName,
       createdAt: user.createdAt,
       rating: profile?.rating ?? 800,

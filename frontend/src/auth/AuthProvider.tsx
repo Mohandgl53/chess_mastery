@@ -13,7 +13,9 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
+  googleLogin: (credential: string) => Promise<void>;
   logout: () => Promise<void>;
+  logoutAll: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -70,6 +72,20 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     }, 0);
   }, []);
 
+  const googleLogin = useCallback(async (_cred: string) => {
+    setUser(LOCAL_USER);
+    setProfile(buildDefaultProfile());
+  }, []);
+
+  const logoutAll = useCallback(async () => {
+    setUser(null);
+    setProfile(null);
+    setTimeout(() => {
+      setUser(LOCAL_USER);
+      setProfile(buildDefaultProfile());
+    }, 0);
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     setProfile(buildDefaultProfile());
   }, []);
@@ -81,7 +97,9 @@ function MockAuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: user !== null,
     login,
     register,
+    googleLogin,
     logout,
+    logoutAll,
     refreshProfile
   };
 
@@ -138,11 +156,24 @@ function ApiAuthProvider({ children }: { children: React.ReactNode }) {
     applySession(session);
   }, [applySession]);
 
+  const googleLogin = useCallback(async (credential: string) => {
+    const session = await authApi.googleLogin(credential);
+    applySession(session);
+  }, [applySession]);
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } finally {
-      // Always clear frontend state, even if server call failed
+      setUser(null);
+      setProfile(null);
+    }
+  }, []);
+
+  const logoutAll = useCallback(async () => {
+    try {
+      await authApi.logoutAll();
+    } finally {
       setUser(null);
       setProfile(null);
     }
@@ -167,7 +198,9 @@ function ApiAuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: user !== null,
     login,
     register,
+    googleLogin,
     logout,
+    logoutAll,
     refreshProfile
   };
 

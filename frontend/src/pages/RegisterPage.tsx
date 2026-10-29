@@ -102,8 +102,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleSocialClick = (provider: string) => {
-    setError(`${provider} sign-up is enabled for linked accounts. Please register using your email address.`);
+  const handleSocialClick = async (provider: string) => {
+    if (provider === 'Google') {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const googleObj = (window as any).google;
+        if (googleObj?.accounts?.id) {
+          googleObj.accounts.id.prompt();
+          return;
+        }
+        setError('Google Sign-In is enabled on the backend. Please configure your Google Client ID or use email registration.');
+      } catch (err: any) {
+        setError(err?.message || 'Google sign-up failed');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setError(`${provider} sign-up is enabled for linked accounts. Please register using your email address.`);
+    }
   };
 
   // Reusable Register Form Component

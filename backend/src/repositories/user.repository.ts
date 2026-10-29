@@ -14,6 +14,26 @@ export class UserRepository {
     });
   }
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return prisma.user.findUnique({
+      where: { googleId }
+    });
+  }
+
+  async linkGoogleAccount(userId: string, googleId: string): Promise<User> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { googleId }
+    });
+  }
+
+  async updatePassword(userId: string, passwordHash: string): Promise<User> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    });
+  }
+
   async findProfileByUserId(userId: string): Promise<PlayerProfile | null> {
     return prisma.playerProfile.findUnique({
       where: { userId }
@@ -25,7 +45,7 @@ export class UserRepository {
    * If either creation fails, the entire operation is rolled back.
    */
   async createWithProfile(
-    userData: { email: string; passwordHash: string; displayName: string },
+    userData: { email: string; passwordHash?: string | null; displayName: string; googleId?: string | null },
     profileData?: {
       rating?: number;
       gamesPlayed?: number;
@@ -38,8 +58,9 @@ export class UserRepository {
       const user = await tx.user.create({
         data: {
           email: userData.email,
-          passwordHash: userData.passwordHash,
-          displayName: userData.displayName
+          passwordHash: userData.passwordHash ?? null,
+          displayName: userData.displayName,
+          googleId: userData.googleId ?? null
         }
       });
 

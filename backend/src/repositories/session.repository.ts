@@ -49,6 +49,13 @@ export class SessionRepository {
   }
 
   /**
+   * Delete all sessions for a specific user (logout all devices / password reset).
+   */
+  async deleteAllForUser(userId: string): Promise<void> {
+    await prisma.session.deleteMany({ where: { userId } });
+  }
+
+  /**
    * Opportunistically delete all expired sessions.
    * Called occasionally; not a guaranteed cleanup mechanism.
    */

@@ -34,10 +34,47 @@ export const authApi = {
   },
 
   /**
-   * Logout. Server deletes session and clears the cookie.
+   * Google OAuth 2.0 / OpenID Connect login with verified credential.
+   */
+  async googleLogin(credential: string): Promise<AuthSession> {
+    return apiClient<AuthSession>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential })
+    });
+  },
+
+  /**
+   * Request password reset link.
+   */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return apiClient<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email })
+    });
+  },
+
+  /**
+   * Submit password reset with token.
+   */
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    return apiClient<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password })
+    });
+  },
+
+  /**
+   * Logout current session. Server deletes session and clears the cookie.
    */
   async logout(): Promise<void> {
     await apiClient<void>('/auth/logout', { method: 'POST' });
+  },
+
+  /**
+   * Logout across all devices and invalidate all active sessions.
+   */
+  async logoutAll(): Promise<void> {
+    await apiClient<void>('/auth/logout-all', { method: 'POST' });
   },
 
   /**

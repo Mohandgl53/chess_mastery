@@ -19,6 +19,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
+import { authApi } from '../services/api/authApi';
 import { ApiError } from '../services/api/client';
 
 interface LoginPageProps {
@@ -28,7 +29,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) => {
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -37,6 +38,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
@@ -122,8 +124,44 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
     }
   };
 
-  const handleSocialClick = (provider: string) => {
-    setError(`${provider} sign-in is enabled for linked accounts. Please sign in with your email or register.`);
+  const handleSocialClick = async (provider: string) => {
+    if (provider === 'Google') {
+      try {
+        setIsLoading(true);
+        setError(null);
+        setSuccessMessage(null);
+        const googleObj = (window as any).google;
+        if (googleObj?.accounts?.id) {
+          googleObj.accounts.id.prompt();
+          return;
+        }
+        setError('Google Sign-In is enabled on the backend. Please configure your Google Client ID or use email login.');
+      } catch (err: any) {
+        setError(err?.message || 'Google sign-in failed');
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setError(`${provider} sign-in is enabled for linked accounts. Please sign in with your email or register.`);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setError('Please enter your email in the field above, then click Forgot password.');
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+      const res = await authApi.forgotPassword(email);
+      setSuccessMessage(res.message);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to request password reset link.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // The reusable login card: tailored for mobile compactness (< lg) and large grandeur on desktop (≥ lg)
@@ -191,6 +229,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
           <div className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* Success Alert */}
+        {successMessage && (
+          <div className="flex items-start gap-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800">
+            <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+            <span>{successMessage}</span>
           </div>
         )}
 
@@ -284,7 +330,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
 
           <button
             type="button"
-            onClick={() => setError('Password reset instructions will be sent to your registered email.')}
+            onClick={handleForgotPassword}
             className="text-stone-600 hover:text-stone-900 font-semibold transition-colors cursor-pointer"
           >
             Forgot password?

@@ -9,6 +9,11 @@ generator client {
   previewFeatures = ["postgresqlExtensions"]
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 enum OpponentType {
   AI
   HUMAN
@@ -80,18 +85,23 @@ enum RecommendationStatus {
 }
 
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  passwordHash String
-  displayName  String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  profile      PlayerProfile?
-  games        Game[]
-  sessions     Session[]
-  lessonProgress UserLessonProgress[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String?
+  displayName         String
+  role                Role                 @default(USER)
+  googleId            String?              @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  profile             PlayerProfile?
+  games               Game[]
+  sessions            Session[]
+  lessonProgress      UserLessonProgress[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([email])
+  @@index([googleId])
 }
 
 model Session {
@@ -102,6 +112,33 @@ model Session {
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
+  replacedBy String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])

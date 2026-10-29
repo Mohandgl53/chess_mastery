@@ -9,7 +9,7 @@ function getParam(param: string | string[] | undefined): string {
 export async function getCurrentUserProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = req.user!.id;
-    const profile = await userService.getUserProfile(userId);
+    const profile = await userService.getUserProfile(userId, userId, req.user!.role);
     res.status(200).json({ data: profile });
   } catch (err) {
     next(err);
@@ -19,7 +19,9 @@ export async function getCurrentUserProfile(req: Request, res: Response, next: N
 export async function getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = getParam(req.params.userId);
-    const profile = await userService.getUserProfile(userId);
+    const requestingUserId = req.user?.id;
+    const requestingRole = req.user?.role;
+    const profile = await userService.getUserProfile(userId, requestingUserId, requestingRole);
     res.status(200).json({ data: profile });
   } catch (err) {
     next(err);

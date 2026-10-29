@@ -40,6 +40,7 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   displayName: string;
+  role: 'USER' | 'ADMIN';
 }
 
 declare global {
@@ -133,6 +134,7 @@ export interface SafeUser {
   id: string;
   email: string;
   displayName: string;
+  role: 'USER' | 'ADMIN';
   createdAt: Date;
 }
 
@@ -151,4 +153,9 @@ export interface SafeProfile {
 export interface SafeAuthResponse {
   user: SafeUser;
   profile: SafeProfile;
+  tokens?: {
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: string;
+  };
 }

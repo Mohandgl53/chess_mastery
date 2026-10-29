@@ -167,6 +167,7 @@ async function main() {
     update: {
       email: 'dev@chesscoach.local',
       displayName: 'Mohan',
+      role: 'ADMIN',
       // Only update passwordHash if DEV_SEED_PASSWORD was provided
       ...(devPasswordHash ? { passwordHash: devPasswordHash } : {})
     },
@@ -176,7 +177,8 @@ async function main() {
       // If no password is set during seeding, use a non-authenticatable placeholder.
       // Set DEV_SEED_PASSWORD to enable local login.
       passwordHash: devPasswordHash ?? 'not-a-real-hash-set-DEV_SEED_PASSWORD-to-login',
-      displayName: 'Mohan'
+      displayName: 'Mohan',
+      role: 'ADMIN'
     }
   });
 

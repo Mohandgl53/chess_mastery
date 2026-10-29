@@ -1,5 +1,5 @@
 /**
- * Phase 3B Auth types.
+ * Phase 3B & Security Hardened Auth types.
  * These represent only safe, non-sensitive identity information.
  * Never include passwordHash, session tokens, or tokenHash.
  */
@@ -8,6 +8,7 @@ export interface AuthUser {
   id: string;
   email: string;
   displayName: string;
+  role?: 'USER' | 'ADMIN';
 }
 
 export interface AuthProfile {

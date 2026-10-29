@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { Chess } from 'chess.js';
+import { puzzleRateLimiter } from '../middleware/rateLimiter.js';
 
 export const puzzleRoutes = Router();
+puzzleRoutes.use(puzzleRateLimiter);
 
 // Helper to parse Chess.com PGN and FEN into legal Puzzle format
 function parseChessComPuzzle(data: any) {

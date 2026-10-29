@@ -17,8 +17,14 @@ const envSchema = z.object({
   OLLAMA_BASE_URL: z.string().default('http://localhost:11434'),
   // Phase 5: RAG Embedding Configuration
   EMBEDDING_PROVIDER: z.enum(['ollama', 'mock']).default('mock'),
-  EMBEDDING_MODEL: z.string().optional()
-
+  EMBEDDING_MODEL: z.string().optional(),
+  // Security Hardening: JWT & OAuth Configuration
+  JWT_SECRET: z
+    .string()
+    .min(16, 'JWT_SECRET must be at least 16 characters')
+    .default('chess_mastery_secure_jwt_secret_key_change_in_production_2026'),
+  JWT_EXPIRES_IN: z.string().default('15m'),
+  GOOGLE_CLIENT_ID: z.string().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -1,28 +1,23 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { prisma } from '../config/database.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { sessionRepository } from '../repositories/session.repository.js';
-import { ConflictError, UnauthorizedError } from '../utils/errors.js';
+import { jwtService } from './jwt.service.js';
+import { googleAuthService } from './google-auth.service.js';
+import { ConflictError, UnauthorizedError, BadRequestError } from '../utils/errors.js';
 import type { RegisterInput, LoginInput } from '../validators/auth.schemas.js';
 import type { SafeAuthResponse, SafeUser, SafeProfile, AuthenticatedUser } from '../types/index.js';
 import type { User, PlayerProfile } from '@prisma/client';
 
 const BCRYPT_COST = 12;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-/**
- * Hash a raw session token with SHA-256.
- * The raw token is sent via cookie; only the hash is stored in PostgreSQL.
- */
 function hashToken(rawToken: string): string {
   return crypto.createHash('sha256').update(rawToken).digest('hex');
 }
 
-/**
- * Generate a cryptographically secure random session token (32 bytes = 64 hex chars).
- * This is the value placed in the httpOnly cookie.
- * It is NEVER stored in the database.
- */
 function generateRawToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -32,6 +27,7 @@ function buildSafeUser(user: User): SafeUser {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
+    role: user.role,
     createdAt: user.createdAt
   };
 }
@@ -50,66 +46,66 @@ function buildSafeProfile(profile: PlayerProfile): SafeProfile {
   };
 }
 
-/**
- * Internal result of register/login — separates the safe JSON response
- * from the raw session token that must only be placed in the httpOnly cookie.
- */
-interface AuthResult {
+export interface AuthResult {
   safeResponse: SafeAuthResponse;
-  /** Raw token for the httpOnly cookie. Never log, return in JSON, or store in DB. */
   rawToken: string;
 }
 
 export class AuthService {
   /**
-   * Register a new user.
-   * Creates User + PlayerProfile in a single transaction.
-   * Returns safe user data and a raw session token (for cookie only).
+   * Register a new user with email and password.
+   * Creates User + PlayerProfile atomically.
+   * Generates httpOnly session cookie token + JWT access/refresh token pair.
    */
   async register(input: RegisterInput): Promise<AuthResult> {
-    // Check for duplicate email (already normalized by Zod schema)
     const existing = await userRepository.findByEmail(input.email);
     if (existing) {
       throw new ConflictError('An account with this email already exists.', 'EMAIL_TAKEN');
     }
 
-    // Hash password — never store plaintext
     const passwordHash = await bcrypt.hash(input.password, BCRYPT_COST);
 
-    // Create User + PlayerProfile atomically
-    const { profile, ...user } = await userRepository.createWithProfile(
-      {
-        email: input.email,
-        passwordHash,
-        displayName: input.displayName
-      }
-    );
+    const { profile, ...user } = await userRepository.createWithProfile({
+      email: input.email,
+      passwordHash,
+      displayName: input.displayName
+    });
 
-    // Create session
+    const authUser: AuthenticatedUser = {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role
+    };
+
+    // Create session for cookie
     const rawToken = generateRawToken();
     const tokenHash = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
     await sessionRepository.createSession(user.id, tokenHash, expiresAt);
 
+    // Create JWT token pair for API/mobile clients
+    const tokens = await jwtService.generateTokenPair(authUser);
+
     return {
       safeResponse: {
         user: buildSafeUser(user as User),
-        profile: buildSafeProfile(profile)
+        profile: buildSafeProfile(profile),
+        tokens
       },
       rawToken
     };
   }
 
   /**
-   * Login an existing user.
-   * Uses generic error messaging to avoid revealing whether email exists.
+   * Login an existing user with email and password.
    */
   async login(input: LoginInput): Promise<AuthResult> {
     const genericError = new UnauthorizedError('Invalid email or password', 'INVALID_CREDENTIALS');
 
     const user = await userRepository.findByEmail(input.email);
-    if (!user) {
-      // Perform a dummy comparison to prevent timing attacks
+    if (!user || !user.passwordHash) {
+      // Dummy compare to mitigate timing attacks
       await bcrypt.compare(input.password, '$2b$12$invalidhashfortimingprotection00000000000000000000000000');
       throw genericError;
     }
@@ -121,11 +117,21 @@ export class AuthService {
 
     const profile = await userRepository.findProfileByUserId(user.id);
 
-    // Create a new session on every login
+    const authUser: AuthenticatedUser = {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role
+    };
+
+    // Create session
     const rawToken = generateRawToken();
     const tokenHash = hashToken(rawToken);
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
     await sessionRepository.createSession(user.id, tokenHash, expiresAt);
+
+    // Create JWT tokens
+    const tokens = await jwtService.generateTokenPair(authUser);
 
     const safeProfile: SafeProfile = profile
       ? buildSafeProfile(profile)
@@ -144,15 +150,175 @@ export class AuthService {
     return {
       safeResponse: {
         user: buildSafeUser(user),
-        profile: safeProfile
+        profile: safeProfile,
+        tokens
       },
       rawToken
     };
   }
 
   /**
-   * Logout: delete the session identified by the raw cookie token.
-   * Safe to call even if session is already missing.
+   * Authenticate or register with Google OAuth ID token.
+   * Verifies Google token signature, checks email verification, and safely links accounts.
+   */
+  async googleLogin(credential: string): Promise<AuthResult> {
+    const googleUser = await googleAuthService.verifyIdToken(credential);
+
+    // 1. Check if user already exists by googleId
+    let user = await userRepository.findByGoogleId(googleUser.googleId);
+
+    // 2. If not found by googleId, check by verified email (account linking)
+    if (!user) {
+      user = await userRepository.findByEmail(googleUser.email);
+      if (user) {
+        // Link googleId to existing user
+        user = await userRepository.linkGoogleAccount(user.id, googleUser.googleId);
+      }
+    }
+
+    let profile: PlayerProfile | null = null;
+
+    // 3. If user doesn't exist at all, create new user + profile
+    if (!user) {
+      const created = await userRepository.createWithProfile({
+        email: googleUser.email,
+        displayName: googleUser.displayName,
+        googleId: googleUser.googleId,
+        passwordHash: null
+      });
+      user = created;
+      profile = created.profile;
+    } else {
+      profile = await userRepository.findProfileByUserId(user.id);
+    }
+
+    const authUser: AuthenticatedUser = {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role
+    };
+
+    // Create session
+    const rawToken = generateRawToken();
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+    await sessionRepository.createSession(user.id, tokenHash, expiresAt);
+
+    // Create JWT tokens
+    const tokens = await jwtService.generateTokenPair(authUser);
+
+    const safeProfile: SafeProfile = profile
+      ? buildSafeProfile(profile)
+      : {
+          id: '',
+          userId: user.id,
+          rating: 800,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          gamesDrawn: 0,
+          gamesLost: 0,
+          currentStreak: 0,
+          longestStreak: 0
+        };
+
+    return {
+      safeResponse: {
+        user: buildSafeUser(user),
+        profile: safeProfile,
+        tokens
+      },
+      rawToken
+    };
+  }
+
+  /**
+   * Request password reset token.
+   * Always returns a generic message to prevent account enumeration.
+   */
+  async requestPasswordReset(email: string): Promise<{ message: string; devResetToken?: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await userRepository.findByEmail(normalizedEmail);
+
+    if (!user) {
+      // Mitigate timing differences by running a dummy hash
+      crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+      return {
+        message: 'If an account with this email exists, a password reset link has been dispatched.'
+      };
+    }
+
+    // Invalidate any older unused reset tokens for this user
+    await prisma.passwordResetToken.updateMany({
+      where: { userId: user.id, used: false },
+      data: { used: true }
+    });
+
+    const rawToken = generateRawToken();
+    const tokenHash = hashToken(rawToken);
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS);
+
+    await prisma.passwordResetToken.create({
+      data: {
+        tokenHash,
+        userId: user.id,
+        expiresAt,
+        used: false
+      }
+    });
+
+    // In production, an email would be dispatched.
+    // In development / test mode, we expose the token to allow test assertions.
+    return {
+      message: 'If an account with this email exists, a password reset link has been dispatched.',
+      devResetToken: process.env.NODE_ENV !== 'production' ? rawToken : undefined
+    };
+  }
+
+  /**
+   * Reset password using a valid, unexpired reset token.
+   * Atomically invalidates all existing sessions & refresh tokens on success.
+   */
+  async resetPassword(rawToken: string, newPassword: string): Promise<{ message: string }> {
+    const tokenHash = hashToken(rawToken);
+
+    const resetRecord = await prisma.passwordResetToken.findUnique({
+      where: { tokenHash }
+    });
+
+    if (!resetRecord || resetRecord.used || resetRecord.expiresAt <= new Date()) {
+      throw new BadRequestError('Invalid or expired password reset token', 'INVALID_RESET_TOKEN');
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+
+    await prisma.$transaction([
+      // 1. Update user password
+      prisma.user.update({
+        where: { id: resetRecord.userId },
+        data: { passwordHash: newPasswordHash }
+      }),
+      // 2. Mark reset token as used
+      prisma.passwordResetToken.update({
+        where: { id: resetRecord.id },
+        data: { used: true }
+      }),
+      // 3. Invalidate all sessions across all devices for this user
+      prisma.session.deleteMany({
+        where: { userId: resetRecord.userId }
+      }),
+      // 4. Revoke all refresh tokens
+      prisma.refreshToken.updateMany({
+        where: { userId: resetRecord.userId },
+        data: { revoked: true }
+      })
+    ]);
+
+    return { message: 'Password has been successfully updated. Please sign in with your new password.' };
+  }
+
+  /**
+   * Logout current session.
    */
   async logout(rawToken: string): Promise<void> {
     const tokenHash = hashToken(rawToken);
@@ -160,9 +326,15 @@ export class AuthService {
   }
 
   /**
-   * Verify a raw session token from the cookie.
-   * Returns the authenticated user if valid, or null if expired/missing.
-   * Deletes expired sessions on encounter.
+   * Logout all sessions for a user (across all devices/browsers).
+   */
+  async logoutAll(userId: string): Promise<void> {
+    await sessionRepository.deleteAllForUser(userId);
+    await jwtService.revokeAllUserTokens(userId);
+  }
+
+  /**
+   * Verify a raw session token from cookie.
    */
   async verifySession(rawToken: string): Promise<AuthenticatedUser | null> {
     const tokenHash = hashToken(rawToken);
@@ -172,20 +344,18 @@ export class AuthService {
       return null;
     }
 
-    // Check expiry
     if (session.expiresAt <= new Date()) {
-      // Delete expired session
       await sessionRepository.deleteByTokenHash(tokenHash);
       return null;
     }
 
-    // Update lastSeenAt (fire-and-forget — don't block the request)
     sessionRepository.updateLastSeen(tokenHash).catch(() => {});
 
     return {
       id: session.user.id,
       email: session.user.email,
-      displayName: session.user.displayName
+      displayName: session.user.displayName,
+      role: session.user.role
     };
   }
 }

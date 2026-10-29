@@ -80,6 +80,13 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/chess_coach?schema=p
 # Allowed client URL (Vite dev server)
 CLIENT_URL="http://localhost:5173"
 
+# JWT Secret & Expiration (Security Hardened)
+JWT_SECRET=chess_mastery_secure_jwt_secret_key_change_in_production_2026
+JWT_EXPIRES_IN=15m
+
+# Google OAuth 2.0 / OpenID Connect (Optional for Google Sign-In)
+# GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+
 # LLM Provider for the AI Chess Coach
 # Options: 'groq' | 'gemini' | 'mock' (mock requires no API key and works offline)
 LLM_PROVIDER=groq
@@ -161,9 +168,10 @@ npm run dev:frontend
 ### Step 6: Open the App & Log In
 
 1. Open your browser and navigate to: **[http://localhost:5173](http://localhost:5173)**
-2. You can either register a new account or sign in with the pre-seeded developer account:
+2. You can either register a new account or sign in with the pre-seeded administrator account:
    - **Email:** `dev@chesscoach.local`
    - **Password:** `test123`
+   - **Role:** `ADMIN` (has access to `/api/admin/users`, `/api/admin/system`, and admin dashboards)
 3. Enjoy playing with Stockfish 19, practicing tactical drills, taking curriculum masterclasses, and chatting with the AI Chess Coach!
 
 ---
@@ -173,7 +181,7 @@ npm run dev:frontend
 To verify that everything is working properly on your system:
 
 ```bash
-# Run all backend unit & integration tests (228 tests)
+# Run all backend unit, integration & security tests (244 tests)
 npm run test:backend
 
 # Run frontend tests (48 tests)
@@ -210,3 +218,4 @@ docker compose -f docker-compose.prod.yml up --build
    - Expected behavior when running tests in headless Node.js environments without browser Web Workers. The application automatically falls back to the internal chess evaluator during testing.
 3. **`Port 5000 or 5173 already in use`**:
    - Change `PORT=5001` in `backend/.env` and `VITE_API_URL=http://localhost:5001/api` in `frontend/.env`.
+
