@@ -47,9 +47,18 @@ export const googleAuthSchema = z.object({
   credential: z.string().min(1, 'Google credential token is required')
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z
+    .string()
+    .min(8, 'New password must be at least 8 characters')
+    .max(128, 'New password must be at most 128 characters')
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

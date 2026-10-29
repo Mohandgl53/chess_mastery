@@ -86,7 +86,7 @@ export class KnowledgeIngestionService {
           contentHash,
           chunk.category,
           chunk.difficulty ?? 'INTERMEDIATE',
-          `{${(chunk.tags ?? []).join(',')}}`,
+          `{${(chunk.tags ?? []).map((t) => `"${t.replace(/["\\]/g, '\\$&')}"`).join(',')}}`,
           chunk.source ?? null,
           chunk.openingEco ?? null,
           vectorStr,

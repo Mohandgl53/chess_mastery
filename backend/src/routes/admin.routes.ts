@@ -14,3 +14,4 @@ adminRoutes.use(requireAdmin);
 adminRoutes.get('/users', listAdminUsers);
 adminRoutes.patch('/users/:userId/role', validateParams(userIdParamSchema), updateUserRole);
 adminRoutes.get('/system', getSystemStats);
+

@@ -162,6 +162,52 @@ describe('Security Audit & Hardening Verification Suite', () => {
         });
     });
 
+    it('change-password rejects incorrect current password', async () => {
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({
+          currentPassword: 'WrongPassword999!',
+          newPassword: 'UpdatedPassword777!'
+        });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+    });
+
+    it('change-password securely hashes new password and updates credentials', async () => {
+      const updatedPassword = 'BrandNewPassword888!';
+      const res = await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({
+          currentPassword: testPassword,
+          newPassword: updatedPassword
+        });
+
+      expect(res.status).toBe(200);
+
+      // Verify DB hash is bcrypt $2b$
+      const user = await prisma.user.findUnique({ where: { id: testUserId } });
+      expect(user!.passwordHash).toMatch(/^\$2[ab]\$/);
+      expect(user!.passwordHash).not.toBe(updatedPassword);
+
+      // Verify login with new password succeeds
+      const newLogin = await request(app)
+        .post('/api/auth/login')
+        .send({ email: testUserEmail, password: updatedPassword });
+      expect(newLogin.status).toBe(200);
+
+      // Reset back for remaining tests
+      await request(app)
+        .post('/api/auth/change-password')
+        .set('Authorization', `Bearer ${newLogin.body.tokens.accessToken}`)
+        .send({
+          currentPassword: updatedPassword,
+          newPassword: testPassword
+        });
+    });
+
     it('logout-all invalidates all active sessions across devices', async () => {
       // Create a fresh session
       const loginRes = await request(app)
@@ -359,6 +405,49 @@ describe('Security Audit & Hardening Verification Suite', () => {
       expect(res.headers['ratelimit-limit']).toBeDefined();
       expect(res.headers['ratelimit-remaining']).toBeDefined();
       expect(res.headers['ratelimit-reset']).toBeDefined();
+    });
+  });
+
+  // =========================================================================
+  // 6. Database Query Safety, Parameterization & Bounded Pagination
+  // =========================================================================
+  describe('6. Database Query Safety & Injection Resistance', () => {
+    it('rejects SQL injection payloads in enum query filters with 400', async () => {
+      const injectionStatus = "' OR 1=1 --";
+      const res = await request(app)
+        .get(`/api/games?status=${encodeURIComponent(injectionStatus)}`)
+        .set('Authorization', `Bearer ${userAccessToken}`);
+
+      expect(res.status).toBe(400);
+    });
+
+    it('clamps negative or excessively large pagination parameters to safe bounds', async () => {
+      const res = await request(app)
+        .get('/api/games?page=-5&limit=999999')
+        .set('Authorization', `Bearer ${userAccessToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.pagination.page).toBe(1);
+      expect(res.body.pagination.limit).toBeLessThanOrEqual(100);
+    });
+
+    it('raw full-text and vector RAG search safely parameterizes SQL injection attempts', async () => {
+      // Execute a coach question containing aggressive SQL injection tokens
+      const injectionQuery = "'; DROP TABLE \"User\"; SELECT * FROM \"KnowledgeChunk\" WHERE '1'='1";
+      const res = await request(app)
+        .post('/api/coach/chat')
+        .set('Authorization', `Bearer ${userAccessToken}`)
+        .send({
+          query: injectionQuery,
+          fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
+        });
+
+      // The server safely handles it as text (HTTP 200) or structured error without crashing or executing SQL
+      expect([200, 400]).toContain(res.status);
+
+      // Verify User table is completely intact
+      const userCount = await prisma.user.count();
+      expect(userCount).toBeGreaterThan(0);
     });
   });
 });

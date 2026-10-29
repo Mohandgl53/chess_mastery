@@ -113,6 +113,16 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
   }
 }
 
+export async function changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const authUser = req.user as AuthenticatedUser;
+    const result = await authService.changePassword(authUser.id, req.body.currentPassword, req.body.newPassword);
+    res.status(200).json({ data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const result = await authService.requestPasswordReset(req.body.email);

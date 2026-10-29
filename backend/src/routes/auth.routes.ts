@@ -3,6 +3,7 @@ import {
   register,
   login,
   googleLogin,
+  changePassword,
   logout,
   logoutAll,
   me,
@@ -20,7 +21,8 @@ import {
   googleAuthSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-  refreshTokenSchema
+  refreshTokenSchema,
+  changePasswordSchema
 } from '../validators/auth.schemas.js';
 
 export const authRoutes = Router();
@@ -33,6 +35,9 @@ authRoutes.post('/login', authRateLimiter, validateBody(loginSchema), login);
 
 // POST /api/auth/google — Google OAuth 2.0 / OpenID Connect login
 authRoutes.post('/google', authRateLimiter, validateBody(googleAuthSchema), googleLogin);
+
+// POST /api/auth/change-password — Authenticated user password update
+authRoutes.post('/change-password', requireAuth, authRateLimiter, validateBody(changePasswordSchema), changePassword);
 
 // POST /api/auth/forgot-password — Account recovery link request
 authRoutes.post('/forgot-password', authRateLimiter, validateBody(forgotPasswordSchema), forgotPassword);

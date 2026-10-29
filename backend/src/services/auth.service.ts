@@ -318,6 +318,27 @@ export class AuthService {
   }
 
   /**
+   * Change password for an authenticated user.
+   * Verifies current password using bcrypt before hashing and saving new password.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    const user = await userRepository.findById(userId);
+    if (!user || !user.passwordHash) {
+      throw new UnauthorizedError('User does not have a local password set (e.g. signed in via Google).', 'OAUTH_ACCOUNT');
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedError('Current password is incorrect.', 'INVALID_CREDENTIALS');
+    }
+
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+    await userRepository.updatePassword(userId, newHash);
+
+    return { message: 'Password updated successfully.' };
+  }
+
+  /**
    * Logout current session.
    */
   async logout(rawToken: string): Promise<void> {

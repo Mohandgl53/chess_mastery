@@ -103,7 +103,7 @@ export class PlayerController {
     try {
       const userId = (req as any).user.id;
       const profile = await playerMemoryRepository.getOrCreateProfile(userId);
-      const limit = Number(req.query.limit) || 30;
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 30));
 
       const evidence = await prisma.learningEvidence.findMany({
         where: { playerId: profile.id },
