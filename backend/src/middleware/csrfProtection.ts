@@ -39,10 +39,14 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   }
 
   // Normalize: compare without trailing slash
-  const allowedOrigin = env.CLIENT_URL.replace(/\/$/, '');
+  const allowedOrigins = [
+    env.CLIENT_URL.replace(/\/$/, ''),
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+  ];
   const requestOrigin = origin.replace(/\/$/, '');
 
-  if (requestOrigin !== allowedOrigin) {
+  if (!allowedOrigins.includes(requestOrigin)) {
     res.status(403).json({
       error: {
         code: 'CSRF_FORBIDDEN',

@@ -20,15 +20,23 @@ export function createApp(): express.Application {
   app.use(helmet());
 
   // CORS Configuration — exact origins only, credentials required for cookies
-  const allowedOrigins = [env.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+  const allowedOrigins = [
+    env.CLIENT_URL.replace(/\/$/, ''),
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+  ];
   app.use(
     cors({
       origin: (origin, callback) => {
         // Allow requests with no origin (curl, server-to-server, automated tests)
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin) {
+          return callback(null, true);
+        }
+        const normalized = origin.replace(/\/$/, '');
+        if (allowedOrigins.includes(normalized)) {
           callback(null, true);
         } else {
-          callback(new Error(`Origin ${origin} not allowed by CORS`));
+          callback(null, false);
         }
       },
       credentials: true,

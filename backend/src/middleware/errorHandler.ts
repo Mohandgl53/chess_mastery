@@ -19,6 +19,17 @@ export function errorHandler(
     return;
   }
 
+  // Handle CORS errors as 403 Forbidden instead of unhandled 500
+  if (err.message && err.message.includes('not allowed by CORS')) {
+    res.status(403).json({
+      error: {
+        code: 'CORS_FORBIDDEN',
+        message: 'Origin not allowed by CORS'
+      }
+    });
+    return;
+  }
+
   // Log unexpected errors internally
   console.error('Unhandled server error:', err);
 

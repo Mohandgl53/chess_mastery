@@ -397,6 +397,54 @@ describe('Security Audit & Hardening Verification Suite', () => {
   // 5. Rate Limiting
   // =========================================================================
   describe('5. Rate Limiting', () => {
+    it('rejects registration requests with malicious Origin (CSRF protection)', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('Origin', 'http://malicious-attacker-website.com')
+        .send({
+          email: `csrf-test-${Date.now()}@test.com`,
+          displayName: 'CSRF Attacker',
+          password: 'Password123!'
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('CSRF_FORBIDDEN');
+    });
+
+    it('prevents privilege escalation during registration (role parameter is ignored)', async () => {
+      const escalateEmail = `escalate-${Date.now()}@test.com`;
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: escalateEmail,
+          displayName: 'Escalation Attempt',
+          password: testPassword,
+          role: 'ADMIN' // Malicious injection attempt
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.role).toBe('USER');
+
+      // Verify in DB directly
+      const user = await prisma.user.findUnique({ where: { email: escalateEmail } });
+      expect(user!.role).toBe('USER');
+
+      // Clean up
+      await prisma.user.delete({ where: { email: escalateEmail } });
+    });
+
+    it('rejects oversized passwords to prevent Hash DoS attacks', async () => {
+      const oversizedPassword = 'A'.repeat(5000);
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: testUserEmail,
+          password: oversizedPassword
+        });
+
+      expect(res.status).toBe(400);
+    });
+
     it('returns standard RateLimit headers on requests', async () => {
       const res = await request(app)
         .get('/api/health')
