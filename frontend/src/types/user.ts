@@ -61,6 +61,14 @@ export interface PlayerProfile {
   country?: string;
   preferredStyle?: 'Tactical' | 'Positional' | 'Universal';
   favoriteOpening?: string;
+  favoriteOpeningBlack?: string;
+  flair?: string;
+  joinedDate?: string;
+  statusMessage?: string;
+  rapidRating?: number;
+  blitzRating?: number;
+  bulletRating?: number;
+  puzzleRating?: number;
   rating: number;
   peakRating: number;
   winCount: number;

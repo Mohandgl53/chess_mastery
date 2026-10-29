@@ -1,7 +1,17 @@
 import { PlayerProfile, RatingHistoryEntry } from '../types/user';
 
-const STORAGE_KEY = 'chess_mastery_player_profile';
 const PROFILE_EVENT = 'chess_mastery_profile_changed';
+
+export function getStorageKey(userId?: string): string {
+  if (userId && userId.trim()) {
+    return `chess_mastery_player_profile_${userId.trim()}`;
+  }
+  try {
+    const active = localStorage.getItem('chess_mastery_active_user_id');
+    if (active) return `chess_mastery_player_profile_${active}`;
+  } catch {}
+  return 'chess_mastery_player_profile_guest';
+}
 
 export const INITIAL_USER_PROFILE: PlayerProfile = {
   id: 'usr-local-player',
@@ -12,6 +22,14 @@ export const INITIAL_USER_PROFILE: PlayerProfile = {
   country: 'Global 🌐',
   preferredStyle: 'Tactical',
   favoriteOpening: 'Sicilian Defense',
+  favoriteOpeningBlack: 'French Defense',
+  flair: '♟️',
+  joinedDate: 'Joined Oct 2026',
+  statusMessage: 'Ready to play & learn chess',
+  rapidRating: 400,
+  blitzRating: 400,
+  bulletRating: 400,
+  puzzleRating: 450,
   rating: 400,
   peakRating: 400,
   winCount: 0,
@@ -20,10 +38,10 @@ export const INITIAL_USER_PROFILE: PlayerProfile = {
   streakDays: 1,
   ratingHistory: [
     {
-      date: 'Starting Rating',
+      date: 'Starting Calibration',
       rating: 400,
       delta: 0,
-      opponent: 'Provisional Calibration',
+      opponent: 'Provisional Baseline',
       result: 'DRAW'
     }
   ],
@@ -47,42 +65,97 @@ export const INITIAL_USER_PROFILE: PlayerProfile = {
   }
 };
 
+export function createDefaultUserProfile(
+  userId?: string,
+  defaults?: { displayName?: string; email?: string; rating?: number }
+): PlayerProfile {
+  const name = defaults?.displayName?.trim() || (defaults?.email ? defaults.email.split('@')[0] : 'Player');
+  const username = defaults?.email ? defaults.email.split('@')[0] : 'player';
+  const rating = defaults?.rating ?? 400;
+
+  return {
+    ...INITIAL_USER_PROFILE,
+    id: userId || 'usr-local-player',
+    name,
+    username,
+    rating,
+    rapidRating: rating,
+    blitzRating: rating,
+    bulletRating: rating,
+    peakRating: rating,
+    joinedDate: `Joined ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+    ratingHistory: [
+      {
+        date: 'Account Created',
+        rating,
+        delta: 0,
+        opponent: 'Provisional Baseline',
+        result: 'DRAW'
+      }
+    ]
+  };
+}
+
 /**
  * Load persisted profile or initialize with 400 starting rating
  */
-export function loadPlayerProfile(): PlayerProfile {
-  if (typeof window === 'undefined') return INITIAL_USER_PROFILE;
+export function loadPlayerProfile(
+  userId?: string,
+  defaults?: { displayName?: string; email?: string; rating?: number }
+): PlayerProfile {
+  if (typeof window === 'undefined') return createDefaultUserProfile(userId, defaults);
 
+  const key = getStorageKey(userId);
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) {
-      savePlayerProfile(INITIAL_USER_PROFILE);
-      return INITIAL_USER_PROFILE;
+      const initial = createDefaultUserProfile(userId, defaults);
+      savePlayerProfile(initial, userId);
+      return initial;
     }
     const parsed = JSON.parse(raw);
+    const fallbackName = defaults?.displayName?.trim() || (defaults?.email ? defaults.email.split('@')[0] : parsed.name || 'Player');
+    const fallbackRating = defaults?.rating ?? parsed.rating ?? 400;
+
     return {
       ...INITIAL_USER_PROFILE,
       ...parsed,
-      rating: parsed.rating ?? 400,
-      peakRating: parsed.peakRating ?? parsed.rating ?? 400,
+      id: userId || parsed.id || 'usr-local-player',
+      name: parsed.name || fallbackName,
+      username: parsed.username || (defaults?.email ? defaults.email.split('@')[0] : 'player'),
+      rating: fallbackRating,
+      rapidRating: parsed.rapidRating ?? fallbackRating,
+      blitzRating: parsed.blitzRating ?? fallbackRating,
+      bulletRating: parsed.bulletRating ?? fallbackRating,
+      puzzleRating: parsed.puzzleRating ?? 450,
+      peakRating: Math.max(parsed.peakRating ?? fallbackRating, fallbackRating),
       ratingHistory: Array.isArray(parsed.ratingHistory) && parsed.ratingHistory.length > 0
         ? parsed.ratingHistory
-        : INITIAL_USER_PROFILE.ratingHistory
+        : [
+            {
+              date: 'Account Created',
+              rating: fallbackRating,
+              delta: 0,
+              opponent: 'Provisional Baseline',
+              result: 'DRAW'
+            }
+          ]
     };
   } catch (err) {
     console.error('Error loading player profile from localStorage:', err);
-    return INITIAL_USER_PROFILE;
+    return createDefaultUserProfile(userId, defaults);
   }
 }
 
 /**
  * Save player profile to localStorage and notify all listeners
  */
-export function savePlayerProfile(profile: PlayerProfile): void {
+export function savePlayerProfile(profile: PlayerProfile, userId?: string): void {
   if (typeof window === 'undefined') return;
 
+  const key = getStorageKey(userId || profile.id);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    localStorage.setItem(key, JSON.stringify(profile));
     window.dispatchEvent(new CustomEvent(PROFILE_EVENT, { detail: profile }));
   } catch (err) {
     console.error('Error saving player profile to localStorage:', err);
@@ -113,14 +186,12 @@ export function calculateMatchRating(
   if (isWin) {
     delta = Math.max(delta, 12);
   } else if (isDraw) {
-    // Drawing against a higher-rated bot gives positive elo
     if (botRating > currentRating) {
       delta = Math.max(4, Math.round((botRating - currentRating) / 50));
     } else {
       delta = 0;
     }
   } else {
-    // Loss against higher bot shouldn't penalize too brutally
     if (botRating > currentRating + 300) {
       delta = Math.min(-4, Math.max(-12, delta));
     } else {
@@ -140,9 +211,10 @@ export function recordCompletedMatch(
   opponentName: string,
   opponentRating: number,
   result: 'WHITE_WINS' | 'BLACK_WINS' | 'DRAW',
-  playerColor: 'w' | 'b'
+  playerColor: 'w' | 'b',
+  userId?: string
 ): { updatedProfile: PlayerProfile; delta: number } {
-  const current = loadPlayerProfile();
+  const current = loadPlayerProfile(userId);
   const { delta, newRating, matchResult } = calculateMatchRating(
     current.rating,
     opponentRating,
@@ -161,6 +233,7 @@ export function recordCompletedMatch(
   const updatedProfile: PlayerProfile = {
     ...current,
     rating: newRating,
+    rapidRating: newRating,
     peakRating: Math.max(current.peakRating, newRating),
     winCount: matchResult === 'WIN' ? current.winCount + 1 : current.winCount,
     lossCount: matchResult === 'LOSS' ? current.lossCount + 1 : current.lossCount,
@@ -168,20 +241,20 @@ export function recordCompletedMatch(
     ratingHistory: [newHistoryEntry, ...(current.ratingHistory || [])].slice(0, 50)
   };
 
-  savePlayerProfile(updatedProfile);
+  savePlayerProfile(updatedProfile, userId);
   return { updatedProfile, delta };
 }
 
 /**
  * Update custom profile details (name, avatar, bio, style, country, opening)
  */
-export function updatePlayerProfile(updates: Partial<PlayerProfile>): PlayerProfile {
-  const current = loadPlayerProfile();
+export function updatePlayerProfile(updates: Partial<PlayerProfile>, userId?: string): PlayerProfile {
+  const current = loadPlayerProfile(userId);
   const updated: PlayerProfile = {
     ...current,
     ...updates,
     peakRating: updates.rating ? Math.max(current.peakRating, updates.rating) : current.peakRating
   };
-  savePlayerProfile(updated);
+  savePlayerProfile(updated, userId);
   return updated;
 }

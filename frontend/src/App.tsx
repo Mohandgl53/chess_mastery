@@ -108,7 +108,20 @@ function AppInner() {
     setCurrentRoute(targetRoute);
   };
 
-  const [persistedProfile, setPersistedProfile] = useState<PlayerProfile>(() => loadPlayerProfile());
+  const [persistedProfile, setPersistedProfile] = useState<PlayerProfile>(() =>
+    loadPlayerProfile(user?.id, { displayName: user?.displayName, email: user?.email, rating: profile?.rating })
+  );
+
+  useEffect(() => {
+    if (user?.id) {
+      try {
+        localStorage.setItem('chess_mastery_active_user_id', user.id);
+      } catch {}
+    }
+    setPersistedProfile(
+      loadPlayerProfile(user?.id, { displayName: user?.displayName, email: user?.email, rating: profile?.rating })
+    );
+  }, [user?.id, user?.displayName, user?.email, profile?.rating]);
 
   useEffect(() => {
     const handleProfileChange = (e: Event) => {
@@ -121,17 +134,19 @@ function AppInner() {
     return () => window.removeEventListener('chess_mastery_profile_changed', handleProfileChange);
   }, []);
 
-  // Build PlayerProfile combining persisted customized profile and auth data
+  // Build PlayerProfile combining persisted customized profile and authoritative auth data
   const userProfile: PlayerProfile = {
     ...persistedProfile,
     id: user?.id || persistedProfile.id,
-    name: persistedProfile.name || user?.displayName || 'Player',
-    username: user?.email || persistedProfile.username,
-    rating: persistedProfile.rating,
-    peakRating: Math.max(persistedProfile.peakRating, persistedProfile.rating),
-    winCount: persistedProfile.winCount,
-    lossCount: persistedProfile.lossCount,
-    drawCount: persistedProfile.drawCount,
+    name: user?.displayName || persistedProfile.name || (user?.email ? user.email.split('@')[0] : 'Player'),
+    username: user?.email ? user.email.split('@')[0] : persistedProfile.username,
+    rating: profile?.rating ?? persistedProfile.rating ?? 400,
+    rapidRating: profile?.rating ?? persistedProfile.rapidRating ?? 400,
+    peakRating: Math.max(persistedProfile.peakRating ?? 400, profile?.rating ?? 400),
+    winCount: profile?.gamesWon ?? persistedProfile.winCount ?? 0,
+    lossCount: profile?.gamesLost ?? persistedProfile.lossCount ?? 0,
+    drawCount: profile?.gamesDrawn ?? persistedProfile.drawCount ?? 0,
+    streakDays: profile?.currentStreak ?? persistedProfile.streakDays ?? 0,
     avatarUrl: persistedProfile.avatarUrl || '♞',
   };
 

@@ -424,7 +424,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
       };
 
       // Record match rating progression dynamically
-      const { delta } = recordCompletedMatch(selectedBot.name, botRating, result, playerColor);
+      const { delta } = recordCompletedMatch(selectedBot.name, botRating, result, playerColor, userProfile.id);
       setLastRatingDelta(delta);
 
       setIsReviewModalOpen(true);
@@ -713,7 +713,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
       analysis
     };
 
-    const { delta } = recordCompletedMatch(selectedBot.name, botRating, result, playerColor);
+    const { delta } = recordCompletedMatch(selectedBot.name, botRating, result, playerColor, userProfile.id);
     setLastRatingDelta(delta);
 
     setIsReviewModalOpen(true);
@@ -765,7 +765,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
     };
 
     const botRating = selectedBot.id === 'bot-adaptive' ? userProfile.rating : selectedBot.rating;
-    const { delta } = recordCompletedMatch(selectedBot.name, botRating, result, playerColor);
+    const { delta } = recordCompletedMatch(selectedBot.name, botRating, result, playerColor, userProfile.id);
     setLastRatingDelta(delta);
 
     setIsReviewModalOpen(true);
