@@ -531,17 +531,15 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 </div>
               </div>
 
-              {/* Bottom Glassmorphic Quote Box */}
+              {/* Live Tactical Engine Pill */}
               <div className="relative z-10">
-                <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-4 max-w-sm shadow-xl flex items-stretch gap-3">
-                  <div className="w-1 bg-[#C0F22A] rounded-full self-stretch" />
+                <div className="bg-black/70 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 max-w-sm shadow-xl flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-[#C6F535]/15 border border-[#C6F535]/30 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4 text-[#C6F535]" />
+                  </div>
                   <div>
-                    <blockquote className="text-xs font-semibold text-white/95 leading-snug">
-                      “A small step today, a stronger player tomorrow.”
-                    </blockquote>
-                    <p className="text-[10px] text-stone-400 font-medium mt-1">
-                      — Chess Coach
-                    </p>
+                    <div className="text-xs font-bold text-white leading-tight">Masterclass Tactical Engine</div>
+                    <div className="text-[10.5px] text-stone-400 font-medium mt-0.5">Instant move-by-move feedback on every drill</div>
                   </div>
                 </div>
               </div>

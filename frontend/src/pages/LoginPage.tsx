@@ -590,17 +590,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
                   </div>
                 </div>
 
-                {/* Garry Kasparov Quote */}
+                {/* Live Position Calibration Metric */}
                 <div className="pt-2">
-                  <div className="flex items-stretch gap-3">
-                    <div className="w-1 bg-[#C0F22A] rounded-full self-stretch" />
+                  <div className="flex items-center gap-3 bg-stone-200/60 p-3 rounded-2xl border border-stone-300/50">
+                    <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center font-black text-xs text-stone-800 shadow-2xs">
+                      ELO
+                    </div>
                     <div>
-                      <blockquote className="text-xs font-semibold text-stone-900">
-                        “The more you learn, the more you see.”
-                      </blockquote>
-                      <p className="text-[10px] text-stone-500 font-medium mt-0.5">
-                        — Garry Kasparov
-                      </p>
+                      <div className="text-xs font-bold text-stone-900">Dynamic Calibration</div>
+                      <div className="text-[11px] text-stone-500 font-medium">Adapts move evaluation to your current tier</div>
                     </div>
                   </div>
                 </div>
