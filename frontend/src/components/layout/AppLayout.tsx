@@ -53,9 +53,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       />
 
       {/* Mobile Header Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-[#151922] border-b border-slate-200 dark:border-[#242A36] px-4 flex items-center justify-between z-40 shadow-xs transition-colors">
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-[#151922] border-b border-slate-200 dark:border-[#242A36] px-4 flex items-center justify-between z-40 shadow-xs transition-colors">
         <div onClick={() => handleMobileNav('/')} className="cursor-pointer">
-          <ChessMasteryLogo size="md" showText={true} />
+          <ChessMasteryLogo size="sm" showText={true} />
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -162,7 +162,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       )}
 
       {/* Main Page Content */}
-      <main className="flex-1 h-full overflow-y-auto pt-16 md:pt-0 pb-16 md:pb-0 bg-[#F0F2F5] dark:bg-[#12151B] transition-colors duration-200">
+      <main className="flex-1 h-full overflow-y-auto pt-14 md:pt-0 pb-16 md:pb-0 bg-[#F0F2F5] dark:bg-[#12151B] transition-colors duration-200">
         {children}
       </main>
 
