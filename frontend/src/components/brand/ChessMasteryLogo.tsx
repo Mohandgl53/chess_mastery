@@ -37,11 +37,11 @@ export const ChessMasteryLogo: React.FC<ZugoraLogoProps> = ({
   const logoSrc = isDark ? '/zugora-logo-dark.jpg' : '/zugora-logo.png';
 
   const sizeMap = {
-    xs: { height: 'h-6', iconSize: 24 },
-    sm: { height: 'h-8', iconSize: 32 },
-    md: { height: 'h-10', iconSize: 40 },
-    lg: { height: 'h-12', iconSize: 48 },
-    xl: { height: 'h-16', iconSize: 64 }
+    xs: { height: 'h-8 sm:h-9', iconSize: 32 },
+    sm: { height: 'h-10 sm:h-11', iconSize: 42 },
+    md: { height: 'h-12 sm:h-14', iconSize: 52 },
+    lg: { height: 'h-16 sm:h-18', iconSize: 64 },
+    xl: { height: 'h-20 sm:h-24', iconSize: 84 }
   };
 
   const config = sizeMap[size];
