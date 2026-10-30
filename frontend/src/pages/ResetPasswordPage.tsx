@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Crown, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { ChessMasteryLogo } from '../components/brand/ChessMasteryLogo';
 import { authApi } from '../services/api/authApi';
 
 interface ResetPasswordPageProps {
@@ -49,11 +50,8 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0F141C] text-white">
       <div className="w-full max-w-md bg-[#161D28] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3 justify-center">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#689E39] to-[#81B64C] flex items-center justify-center shadow-lg shadow-[#81B64C]/20">
-            <Crown className="w-5 h-5 fill-amber-300 text-amber-300" />
-          </div>
-          <span className="font-black text-lg uppercase tracking-tight font-display">Chess Mastery</span>
+        <div className="flex items-center justify-center">
+          <ChessMasteryLogo size="md" lightText={true} />
         </div>
 
         {isSuccess ? (

@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { PlayerProfile } from '../../types/user';
 import { useTheme } from '../../context/ThemeContext';
+import { ChessMasteryLogo } from '../brand/ChessMasteryLogo';
 import {
   Menu,
   X,
-  Crown,
   Home,
   Play,
   BookOpen,
@@ -51,11 +51,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
       {/* Mobile Header Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-[#151922] border-b border-slate-200 dark:border-[#242A36] px-4 flex items-center justify-between z-40 shadow-xs transition-colors">
-        <div onClick={() => handleMobileNav('/')} className="flex items-center gap-2.5 cursor-pointer">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#689E39] to-[#81B64C] text-white flex items-center justify-center shadow-xs">
-            <Crown className="w-4 h-4 fill-amber-300 text-amber-300" />
-          </div>
-          <span className="font-black text-sm text-slate-900 dark:text-white font-display uppercase tracking-tight">Chess Mastery</span>
+        <div onClick={() => handleMobileNav('/')} className="cursor-pointer">
+          <ChessMasteryLogo size="sm" showText={true} />
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -87,11 +84,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <div className="w-72 bg-white dark:bg-[#151922] border-r border-slate-200 dark:border-[#242A36] h-full p-4 flex flex-col justify-between shadow-2xl animate-in slide-in-from-left duration-200">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-[#242A36] mb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#689E39] to-[#81B64C] text-white flex items-center justify-center shadow-xs">
-                    <Crown className="w-4 h-4 fill-amber-300 text-amber-300" />
-                  </div>
-                  <span className="font-black text-sm text-slate-900 dark:text-white font-display uppercase tracking-tight">Chess Mastery</span>
+                <div onClick={() => handleMobileNav('/')} className="cursor-pointer">
+                  <ChessMasteryLogo size="sm" showText={true} />
                 </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                   <X className="w-5 h-5" />

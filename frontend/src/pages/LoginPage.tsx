@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Crown,
   Mail,
   Phone,
   Lock,
@@ -18,6 +17,7 @@ import {
   AlertCircle,
   Check,
 } from 'lucide-react';
+import { ChessMasteryLogo } from '../components/brand/ChessMasteryLogo';
 import { useAuth } from '../auth/AuthProvider';
 import { authApi } from '../services/api/authApi';
 import { ApiError } from '../services/api/client';
@@ -430,20 +430,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
           <button
             type="button"
             onClick={() => onNavigate('/landing')}
-            className="flex items-center gap-2.5 text-left cursor-pointer group"
+            className="cursor-pointer group"
             title="Return to Landing Page"
           >
-            <div className="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center shadow-md border border-white/10 group-hover:border-[#A3E635]/50 transition-colors">
-              <Crown className="w-4 h-4 fill-current group-hover:text-[#A3E635] transition-colors" />
-            </div>
-            <div>
-              <h1 className="text-sm font-extrabold text-white tracking-tight leading-none group-hover:text-stone-200 transition-colors">
-                Chess Coach
-              </h1>
-              <p className="text-[8.5px] font-bold tracking-[0.2em] text-[#A3E635] mt-0.5 uppercase">
-                Play. Learn. Improve.
-              </p>
-            </div>
+            <ChessMasteryLogo size="sm" lightText={true} />
           </button>
 
           {/* Actions: Back to Home & Create Account */}
@@ -519,20 +509,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
                 <button
                   type="button"
                   onClick={() => onNavigate('/landing')}
-                  className="flex items-center gap-3 text-left cursor-pointer group"
+                  className="cursor-pointer group"
                   title="Return to Landing Page"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center shadow-sm group-hover:bg-stone-800 transition-colors">
-                    <Crown className="w-5 h-5 fill-current" />
-                  </div>
-                  <div>
-                    <h1 className="text-base font-extrabold text-stone-900 tracking-tight leading-none group-hover:text-stone-700 transition-colors">
-                      Chess Coach
-                    </h1>
-                    <p className="text-[9.5px] font-bold tracking-[0.22em] text-stone-400 mt-1 uppercase">
-                      PLAY. LEARN. IMPROVE.
-                    </p>
-                  </div>
+                  <ChessMasteryLogo size="md" lightText={false} />
                 </button>
 
                 {/* Right actions: Back to Home + Create Account */}

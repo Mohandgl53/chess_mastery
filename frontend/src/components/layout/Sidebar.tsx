@@ -8,7 +8,6 @@ import {
   BarChart2,
   TrendingUp,
   Settings,
-  Crown,
   LogOut,
   Flame,
   Volume2,
@@ -16,6 +15,7 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
+import { ChessMasteryLogo } from '../brand/ChessMasteryLogo';
 import { PlayerProfile } from '../../types/user';
 import { useAuth } from '../../auth/AuthProvider';
 import { useTheme } from '../../context/ThemeContext';
@@ -78,20 +78,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div>
         <div
           onClick={() => onNavigate('/')}
-          className="p-3 lg:p-4 flex items-center justify-center lg:justify-start gap-3 cursor-pointer hover:opacity-95 transition-opacity"
-          title="Chess Mastery - AI Grandmaster Coach"
+          className="p-3 lg:p-4 flex items-center justify-center lg:justify-start cursor-pointer hover:opacity-95 transition-opacity"
+          title="Chess Mastery - Grandmaster AI Platform"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#689E39] to-[#81B64C] text-white flex items-center justify-center shadow-md shadow-[#81B64C]/25 border border-white/20 shrink-0">
-            <Crown className="w-5 h-5 fill-amber-300 text-amber-300" />
+          {/* Mobile/Collapsed icon view */}
+          <div className="lg:hidden">
+            <ChessMasteryLogo size="md" showText={false} />
           </div>
-          <div className="hidden lg:block overflow-hidden">
-            <span className="font-black text-sm tracking-tight text-slate-900 dark:text-white font-display block uppercase truncate">
-              Chess Mastery
-            </span>
-            <span className="text-[10px] font-bold text-[#81B64C] tracking-wider uppercase flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#81B64C] animate-pulse" />
-              AI Coach
-            </span>
+          {/* Desktop expanded view */}
+          <div className="hidden lg:block">
+            <ChessMasteryLogo size="md" showText={true} />
           </div>
         </div>
 

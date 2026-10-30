@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { ChessMasteryLogo } from '../components/brand/ChessMasteryLogo';
 import {
   Crown,
   Brain,
@@ -887,18 +888,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               padding: 0,
             }}
           >
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'linear-gradient(135deg, #81B64C, #588329)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 20px rgba(129,182,76,0.35)',
-              flexShrink: 0,
-            }}>
-              <Crown size={18} color="#fff" fill="#fff" />
-            </div>
-            <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, fontSize: '1.05rem', color: '#F5F0E8', letterSpacing: '-0.01em' }}>
-              Chess Mastery
-            </span>
+            <ChessMasteryLogo size="md" lightText={true} />
           </button>
 
           {/* Desktop Nav links */}
@@ -1714,15 +1704,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         }}>
           <div className="lp2-footer-content">
             {/* Brand */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: 8,
-                background: 'linear-gradient(135deg, #81B64C, #588329)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Crown size={15} color="#fff" fill="#fff" />
-              </div>
-              <span style={{ fontFamily: "'Outfit', sans-serif", fontWeight: 800, color: '#F5F0E8', fontSize: '0.95rem' }}>Chess Mastery</span>
+            <div>
+              <ChessMasteryLogo size="sm" lightText={true} />
             </div>
 
             {/* Links */}

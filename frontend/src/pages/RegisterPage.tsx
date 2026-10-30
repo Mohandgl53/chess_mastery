@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Crown,
   User,
   Mail,
   Lock,
@@ -16,6 +15,7 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react';
+import { ChessMasteryLogo } from '../components/brand/ChessMasteryLogo';
 import { useAuth } from '../auth/AuthProvider';
 import { ApiError } from '../services/api/client';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
@@ -137,7 +137,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             isMobile ? 'text-2xl sm:text-3xl' : 'text-3xl xl:text-[34px]'
           }`}
         >
-          Join Chess Coach
+          Join Chess Mastery
         </h2>
         <p className="text-xs sm:text-sm text-stone-600 mt-1 font-normal">
           Start learning, practicing, and improving with AI-powered chess coaching.
@@ -394,20 +394,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
           <button
             type="button"
             onClick={() => onNavigate('/landing')}
-            className="flex items-center gap-2.5 text-left cursor-pointer group"
+            className="cursor-pointer group"
             title="Return to Landing Page"
           >
-            <div className="w-8 h-8 rounded-xl bg-white text-black flex items-center justify-center shadow-md group-hover:bg-[#C6F535] transition-colors">
-              <Crown className="w-4 h-4 fill-current" />
-            </div>
-            <div>
-              <h1 className="text-sm font-extrabold text-white tracking-tight leading-none group-hover:text-stone-200 transition-colors">
-                Chess Coach
-              </h1>
-              <p className="text-[8.5px] font-bold tracking-[0.2em] text-[#A3E635] mt-0.5 uppercase">
-                Play. Learn. Improve.
-              </p>
-            </div>
+            <ChessMasteryLogo size="sm" lightText={true} />
           </button>
 
           <div className="flex items-center gap-2">
@@ -477,20 +467,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => onNavigate('/landing')}
-                  className="flex items-center gap-3 text-left cursor-pointer group"
+                  className="cursor-pointer group"
                   title="Return to Landing Page"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center shadow-md group-hover:bg-[#C6F535] transition-colors">
-                    <Crown className="w-5 h-5 fill-current" />
-                  </div>
-                  <div>
-                    <h1 className="text-base font-extrabold text-white tracking-tight leading-none group-hover:text-stone-200 transition-colors">
-                      Chess Coach
-                    </h1>
-                    <p className="text-[9.5px] font-bold tracking-[0.22em] text-stone-400 mt-1 uppercase">
-                      PLAY. LEARN. IMPROVE.
-                    </p>
-                  </div>
+                  <ChessMasteryLogo size="md" lightText={true} />
                 </button>
 
                 <button
