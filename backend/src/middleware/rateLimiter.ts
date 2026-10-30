@@ -38,9 +38,16 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
       return next();
     }
 
+    // Always skip OPTIONS preflight requests
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
+
     const key = options.keyGenerator
       ? options.keyGenerator(req)
-      : (req.user?.id || req.ip || req.socket.remoteAddress || 'unknown');
+      : req.user?.id
+        ? `user:${req.user.id}`
+        : `ip:${req.ip || req.socket.remoteAddress || 'unknown'}`;
 
     const now = Date.now();
     let record = tracker.get(key);
@@ -80,10 +87,10 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
 
 /**
  * Strict Rate Limiter for Authentication endpoints (login, register, reset password).
- * 10 attempts per 15 minutes per IP/client.
+ * 30 attempts per 15 minutes per IP/client (protects against brute-force while allowing retries).
  */
 export const authRateLimiter = createRateLimiter({
-  limit: 10,
+  limit: 30,
   windowMs: 15 * 60 * 1000,
   message: 'Too many authentication attempts. Please try again after 15 minutes.',
   skipInTest: true,
@@ -97,10 +104,10 @@ export const authRateLimiter = createRateLimiter({
 
 /**
  * General API Rate Limiter for all routes.
- * 200 requests per minute per IP.
+ * 1,200 requests per minute per user/IP (generous threshold preventing UI lockouts).
  */
 export const generalApiRateLimiter = createRateLimiter({
-  limit: 200,
+  limit: 1200,
   windowMs: 60 * 1000,
   message: 'Too many API requests. Please slow down.',
   skipInTest: true
@@ -108,20 +115,20 @@ export const generalApiRateLimiter = createRateLimiter({
 
 /**
  * Coach Rate Limiter for LLM calls (prevents token exhaustion).
- * 30 requests per minute per user/IP.
+ * 60 requests per minute per user/IP.
  */
 export const coachRateLimiter = createRateLimiter({
-  limit: 30,
+  limit: 60,
   windowMs: 60 * 1000,
   skipInTest: true
 });
 
 /**
  * Puzzle Rate Limiter for outbound proxy queries (Chess.com / Lichess).
- * 40 requests per minute.
+ * 80 requests per minute.
  */
 export const puzzleRateLimiter = createRateLimiter({
-  limit: 40,
+  limit: 80,
   windowMs: 60 * 1000,
   skipInTest: true
 });

@@ -42,7 +42,13 @@ export async function apiClient<T>(
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      const message = data?.error?.message || response.statusText || 'API request failed';
+      let message = data?.error?.message || response.statusText || 'API request failed';
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        message = retryAfter
+          ? `Server is temporarily busy. Please wait ${retryAfter} second${Number(retryAfter) === 1 ? '' : 's'} before retrying.`
+          : 'Server is temporarily busy. Please wait a moment and try again.';
+      }
       const code = data?.error?.code || `HTTP_${response.status}`;
       throw new ApiError(message, response.status, code, data?.error?.details);
     }
