@@ -32,3 +32,15 @@ export const evidenceQuerySchema = z.object({
   category: z.string().optional(),
   theme: z.string().optional()
 });
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().min(1).max(60).optional(),
+  avatarUrl: z.string().max(500000, 'Image payload too large (max ~350KB)').nullable().optional(),
+  bio: z.string().max(500, 'Bio must be under 500 characters').nullable().optional(),
+  country: z.string().max(60).nullable().optional(),
+  preferredStyle: z.string().max(50).nullable().optional(),
+  favoriteOpening: z.string().max(80).nullable().optional(),
+  favoriteOpeningBlack: z.string().max(80).nullable().optional(),
+  flair: z.string().max(30).nullable().optional(),
+  statusMessage: z.string().max(120).nullable().optional()
+});

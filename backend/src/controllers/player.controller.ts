@@ -162,6 +162,62 @@ export class PlayerController {
       Next(err);
     }
   }
+
+  async updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = (req as any).user.id;
+      const {
+        displayName,
+        avatarUrl,
+        bio,
+        country,
+        preferredStyle,
+        favoriteOpening,
+        favoriteOpeningBlack,
+        flair,
+        statusMessage
+      } = req.body;
+
+      // 1. Update user displayName if supplied
+      let updatedUser = null;
+      if (displayName && typeof displayName === 'string' && displayName.trim().length > 0) {
+        updatedUser = await prisma.user.update({
+          where: { id: userId },
+          data: { displayName: displayName.trim() },
+          select: { id: true, email: true, displayName: true, role: true, emailVerified: true, createdAt: true }
+        });
+      }
+
+      // 2. Build profile update payload
+      const updateData: Record<string, any> = {};
+      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+      if (bio !== undefined) updateData.bio = bio;
+      if (country !== undefined) updateData.country = country;
+      if (preferredStyle !== undefined) updateData.preferredStyle = preferredStyle;
+      if (favoriteOpening !== undefined) updateData.favoriteOpening = favoriteOpening;
+      if (favoriteOpeningBlack !== undefined) updateData.favoriteOpeningBlack = favoriteOpeningBlack;
+      if (flair !== undefined) updateData.flair = flair;
+      if (statusMessage !== undefined) updateData.statusMessage = statusMessage;
+
+      // Ensure profile exists
+      await playerMemoryRepository.getOrCreateProfile(userId);
+
+      const updatedProfile = await prisma.playerProfile.update({
+        where: { userId },
+        data: updateData
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          profile: updatedProfile,
+          user: updatedUser
+        }
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const playerController = new PlayerController();

@@ -121,9 +121,30 @@ function AppInner() {
       } catch {}
     }
     setPersistedProfile(
-      loadPlayerProfile(user?.id, { displayName: user?.displayName, email: user?.email, rating: profile?.rating })
+      loadPlayerProfile(user?.id, {
+        displayName: user?.displayName,
+        email: user?.email,
+        rating: profile?.rating,
+        avatarUrl: profile?.avatarUrl,
+        bio: profile?.bio,
+        country: profile?.country,
+        preferredStyle: profile?.preferredStyle,
+        favoriteOpening: profile?.favoriteOpening,
+        favoriteOpeningBlack: profile?.favoriteOpeningBlack,
+        flair: profile?.flair,
+        statusMessage: profile?.statusMessage
+      })
     );
-  }, [user?.id, user?.displayName, user?.email, profile?.rating]);
+  }, [
+    user?.id,
+    user?.displayName,
+    user?.email,
+    profile?.rating,
+    profile?.avatarUrl,
+    profile?.bio,
+    profile?.country,
+    profile?.flair
+  ]);
 
   useEffect(() => {
     const handleProfileChange = (e: Event) => {
@@ -149,7 +170,14 @@ function AppInner() {
     lossCount: profile?.gamesLost ?? persistedProfile.lossCount ?? 0,
     drawCount: profile?.gamesDrawn ?? persistedProfile.drawCount ?? 0,
     streakDays: profile?.currentStreak ?? persistedProfile.streakDays ?? 0,
-    avatarUrl: persistedProfile.avatarUrl || '♞',
+    avatarUrl: profile?.avatarUrl || persistedProfile.avatarUrl || '♞',
+    bio: profile?.bio || persistedProfile.bio,
+    country: profile?.country || persistedProfile.country,
+    preferredStyle: (profile?.preferredStyle as any) || persistedProfile.preferredStyle,
+    favoriteOpening: profile?.favoriteOpening || persistedProfile.favoriteOpening,
+    favoriteOpeningBlack: profile?.favoriteOpeningBlack || persistedProfile.favoriteOpeningBlack,
+    flair: profile?.flair || persistedProfile.flair,
+    statusMessage: profile?.statusMessage || persistedProfile.statusMessage,
   };
 
   // ---------------------------------------------------------------------------

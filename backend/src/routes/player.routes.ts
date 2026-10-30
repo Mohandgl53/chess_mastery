@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { playerController } from '../controllers/player.controller.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { validateQuery, validateParams } from '../middleware/validate.js';
+import { validateQuery, validateParams, validateBody } from '../middleware/validate.js';
 import {
   recommendationIdParamSchema,
   processGameParamSchema,
   weaknessQuerySchema,
-  evidenceQuerySchema
+  evidenceQuerySchema,
+  updateProfileSchema
 } from '../validators/player.schemas.js';
 
 export const playerRoutes = Router();
@@ -15,6 +16,7 @@ export const playerRoutes = Router();
 playerRoutes.use(requireAuth);
 
 playerRoutes.get('/profile', (req, res, next) => playerController.getProfile(req, res, next));
+playerRoutes.patch('/profile', validateBody(updateProfileSchema), (req, res, next) => playerController.updateProfile(req, res, next));
 playerRoutes.get('/skills', (req, res, next) => playerController.getSkills(req, res, next));
 playerRoutes.get('/weaknesses', validateQuery(weaknessQuerySchema), (req, res, next) => playerController.getWeaknesses(req, res, next));
 playerRoutes.get('/strengths', (req, res, next) => playerController.getStrengths(req, res, next));

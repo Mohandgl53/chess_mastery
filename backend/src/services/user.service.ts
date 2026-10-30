@@ -13,6 +13,14 @@ export interface SafeUserProfile {
   gamesLost: number;
   currentStreak: number;
   longestStreak: number;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  country?: string | null;
+  preferredStyle?: string | null;
+  favoriteOpening?: string | null;
+  favoriteOpeningBlack?: string | null;
+  flair?: string | null;
+  statusMessage?: string | null;
 }
 
 export class UserService {
@@ -45,7 +53,15 @@ export class UserService {
       gamesDrawn: profile?.gamesDrawn ?? 0,
       gamesLost: profile?.gamesLost ?? 0,
       currentStreak: profile?.currentStreak ?? 0,
-      longestStreak: profile?.longestStreak ?? 0
+      longestStreak: profile?.longestStreak ?? 0,
+      avatarUrl: profile?.avatarUrl,
+      bio: profile?.bio,
+      country: profile?.country,
+      preferredStyle: profile?.preferredStyle,
+      favoriteOpening: profile?.favoriteOpening,
+      favoriteOpeningBlack: profile?.favoriteOpeningBlack,
+      flair: profile?.flair,
+      statusMessage: profile?.statusMessage
     };
   }
 }

@@ -46,7 +46,15 @@ function buildSafeProfile(profile: PlayerProfile): SafeProfile {
     gamesDrawn: profile.gamesDrawn,
     gamesLost: profile.gamesLost,
     currentStreak: profile.currentStreak,
-    longestStreak: profile.longestStreak
+    longestStreak: profile.longestStreak,
+    avatarUrl: profile.avatarUrl,
+    bio: profile.bio,
+    country: profile.country,
+    preferredStyle: profile.preferredStyle,
+    favoriteOpening: profile.favoriteOpening,
+    favoriteOpeningBlack: profile.favoriteOpeningBlack,
+    flair: profile.flair,
+    statusMessage: profile.statusMessage,
   };
 }
 

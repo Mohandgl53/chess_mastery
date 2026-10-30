@@ -30,6 +30,14 @@ export interface BackendPlayerProfile {
   totalMistakes: number;
   totalInaccuracies: number;
   lastAnalyzedAt: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  country?: string | null;
+  preferredStyle?: string | null;
+  favoriteOpening?: string | null;
+  favoriteOpeningBlack?: string | null;
+  flair?: string | null;
+  statusMessage?: string | null;
 }
 
 export interface BackendWeakness {
@@ -173,6 +181,27 @@ export const playerApi = {
     const res = await apiClient<{ success: boolean; data: any }>('/player/recalculate', {
       method: 'POST'
     });
+    return res.data;
+  },
+
+  async updateProfile(payload: {
+    displayName?: string;
+    avatarUrl?: string | null;
+    bio?: string | null;
+    country?: string | null;
+    preferredStyle?: string | null;
+    favoriteOpening?: string | null;
+    favoriteOpeningBlack?: string | null;
+    flair?: string | null;
+    statusMessage?: string | null;
+  }): Promise<{ profile: BackendPlayerProfile; user?: any }> {
+    const res = await apiClient<{ success: boolean; data: { profile: BackendPlayerProfile; user?: any } }>(
+      '/player/profile',
+      {
+        method: 'PATCH',
+        body: JSON.stringify(payload)
+      }
+    );
     return res.data;
   }
 };

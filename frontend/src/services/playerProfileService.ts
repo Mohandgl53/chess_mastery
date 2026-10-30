@@ -101,7 +101,19 @@ export function createDefaultUserProfile(
  */
 export function loadPlayerProfile(
   userId?: string,
-  defaults?: { displayName?: string; email?: string; rating?: number }
+  defaults?: {
+    displayName?: string;
+    email?: string;
+    rating?: number;
+    avatarUrl?: string | null;
+    bio?: string | null;
+    country?: string | null;
+    preferredStyle?: string | null;
+    favoriteOpening?: string | null;
+    favoriteOpeningBlack?: string | null;
+    flair?: string | null;
+    statusMessage?: string | null;
+  }
 ): PlayerProfile {
   if (typeof window === 'undefined') return createDefaultUserProfile(userId, defaults);
 
@@ -110,6 +122,14 @@ export function loadPlayerProfile(
     const raw = localStorage.getItem(key);
     if (!raw) {
       const initial = createDefaultUserProfile(userId, defaults);
+      if (defaults?.avatarUrl) initial.avatarUrl = defaults.avatarUrl;
+      if (defaults?.bio) initial.bio = defaults.bio;
+      if (defaults?.country) initial.country = defaults.country;
+      if (defaults?.preferredStyle) initial.preferredStyle = defaults.preferredStyle as any;
+      if (defaults?.favoriteOpening) initial.favoriteOpening = defaults.favoriteOpening;
+      if (defaults?.favoriteOpeningBlack) initial.favoriteOpeningBlack = defaults.favoriteOpeningBlack;
+      if (defaults?.flair) initial.flair = defaults.flair;
+      if (defaults?.statusMessage) initial.statusMessage = defaults.statusMessage;
       savePlayerProfile(initial, userId);
       return initial;
     }
@@ -123,6 +143,14 @@ export function loadPlayerProfile(
       id: userId || parsed.id || 'usr-local-player',
       name: parsed.name || fallbackName,
       username: parsed.username || (defaults?.email ? defaults.email.split('@')[0] : 'player'),
+      avatarUrl: defaults?.avatarUrl ?? parsed.avatarUrl ?? '♞',
+      bio: defaults?.bio ?? parsed.bio ?? INITIAL_USER_PROFILE.bio,
+      country: defaults?.country ?? parsed.country ?? INITIAL_USER_PROFILE.country,
+      preferredStyle: (defaults?.preferredStyle ?? parsed.preferredStyle ?? INITIAL_USER_PROFILE.preferredStyle) as any,
+      favoriteOpening: defaults?.favoriteOpening ?? parsed.favoriteOpening ?? INITIAL_USER_PROFILE.favoriteOpening,
+      favoriteOpeningBlack: defaults?.favoriteOpeningBlack ?? parsed.favoriteOpeningBlack ?? INITIAL_USER_PROFILE.favoriteOpeningBlack,
+      flair: defaults?.flair ?? parsed.flair ?? INITIAL_USER_PROFILE.flair,
+      statusMessage: defaults?.statusMessage ?? parsed.statusMessage ?? INITIAL_USER_PROFILE.statusMessage,
       rating: fallbackRating,
       rapidRating: parsed.rapidRating ?? fallbackRating,
       blitzRating: parsed.blitzRating ?? fallbackRating,

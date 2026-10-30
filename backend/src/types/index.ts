@@ -149,6 +149,14 @@ export interface SafeProfile {
   gamesLost: number;
   currentStreak: number;
   longestStreak: number;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  country?: string | null;
+  preferredStyle?: string | null;
+  favoriteOpening?: string | null;
+  favoriteOpeningBlack?: string | null;
+  flair?: string | null;
+  statusMessage?: string | null;
 }
 
 export interface SafeAuthResponse {

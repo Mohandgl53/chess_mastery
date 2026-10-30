@@ -109,7 +109,7 @@ export async function me(req: Request, res: Response, next: NextFunction): Promi
       user: {
         id: authUser.id,
         email: authUser.email,
-        displayName: authUser.displayName,
+        displayName: profile.displayName || authUser.displayName,
         role: authUser.role
       },
       profile

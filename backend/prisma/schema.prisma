@@ -170,6 +170,16 @@ model PlayerProfile {
   currentStreak           Int                      @default(0)
   longestStreak           Int                      @default(0)
 
+  // Custom Profile & Personalization
+  avatarUrl               String?                  @db.Text
+  bio                     String?                  @db.Text
+  country                 String?                  @default("Global 🌐")
+  preferredStyle          String?                  @default("Tactical")
+  favoriteOpening         String?                  @default("Italian Game")
+  favoriteOpeningBlack    String?                  @default("Sicilian Defense")
+  flair                   String?                  @default("♟️")
+  statusMessage           String?                  @default("Ready to play & learn chess")
+
   // Phase 6: Normalized Skill Training Competencies (0-100 score, neutral baseline 50)
   tacticsSkill            Float                    @default(50.0)
   calculationSkill        Float                    @default(50.0)

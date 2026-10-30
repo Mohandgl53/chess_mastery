@@ -6,11 +6,13 @@ import { playerApi, BackendPlayerProfile } from '../services/api/playerApi';
 import { SavedGame } from '../types/game';
 import { formatDisplayEmail } from '../utils/userDisplay';
 import { updatePlayerProfile, loadPlayerProfile } from '../services/playerProfileService';
+import { compressAvatarImage } from '../utils/imageCompressor';
 import {
   Trophy, Award, Flame, Swords, Target, TrendingUp,
   Share2, CheckCircle2, Sparkles, Edit3, Check, X,
   Shield, Zap, Globe, Camera, Upload, BarChart2,
-  Clock, BookOpen, Crown, ChevronRight, Play, Eye
+  Clock, BookOpen, Crown, ChevronRight, Play, Eye,
+  Loader2, Trash2
 } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -82,8 +84,10 @@ function getUserGradient(name: string): string {
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialProfile, onNavigate }) => {
-  const { user, profile: authProfile } = useAuth();
+  const { user, profile: authProfile, refreshProfile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Derive initial values from authenticated user and profile
   const effectiveDisplayName = user?.displayName || initialProfile.name || (user?.email ? user.email.split('@')[0] : 'Player');
@@ -94,7 +98,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
     loadPlayerProfile(user?.id, {
       displayName: effectiveDisplayName,
       email: user?.email,
-      rating: authProfile?.rating ?? initialProfile.rating ?? 400
+      rating: authProfile?.rating ?? initialProfile.rating ?? 400,
+      avatarUrl: authProfile?.avatarUrl,
+      bio: authProfile?.bio,
+      country: authProfile?.country,
+      preferredStyle: authProfile?.preferredStyle,
+      favoriteOpening: authProfile?.favoriteOpening,
+      favoriteOpeningBlack: authProfile?.favoriteOpeningBlack,
+      flair: authProfile?.flair,
+      statusMessage: authProfile?.statusMessage
     })
   );
 
@@ -104,10 +116,32 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
       loadPlayerProfile(user?.id, {
         displayName: effectiveDisplayName,
         email: user?.email,
-        rating: authProfile?.rating ?? initialProfile.rating ?? 400
+        rating: authProfile?.rating ?? initialProfile.rating ?? 400,
+        avatarUrl: authProfile?.avatarUrl,
+        bio: authProfile?.bio,
+        country: authProfile?.country,
+        preferredStyle: authProfile?.preferredStyle,
+        favoriteOpening: authProfile?.favoriteOpening,
+        favoriteOpeningBlack: authProfile?.favoriteOpeningBlack,
+        flair: authProfile?.flair,
+        statusMessage: authProfile?.statusMessage
       })
     );
-  }, [user?.id, effectiveDisplayName, user?.email, authProfile?.rating, initialProfile.rating]);
+  }, [
+    user?.id,
+    effectiveDisplayName,
+    user?.email,
+    authProfile?.rating,
+    authProfile?.avatarUrl,
+    authProfile?.bio,
+    authProfile?.country,
+    authProfile?.preferredStyle,
+    authProfile?.favoriteOpening,
+    authProfile?.favoriteOpeningBlack,
+    authProfile?.flair,
+    authProfile?.statusMessage,
+    initialProfile.rating
+  ]);
 
   // Edit Drawer State
   const [isEditing, setIsEditing] = useState(false);
@@ -196,8 +230,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
   const prevMilestone = nextMilestone - 200;
   const progressToNext = Math.min(100, Math.max(0, Math.round(((currentRating - prevMilestone) / (nextMilestone - prevMilestone)) * 100)));
 
-  // Handle Photo Upload from device
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle Photo Upload from device with client-side compression & PostgreSQL persistence
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -206,38 +240,105 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      showToast('Image file size should be less than 2MB.');
-      return;
-    }
+    try {
+      setIsCompressing(true);
+      showToast('Compressing image to lightweight WebP...');
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setEditAvatar(reader.result);
-        showToast('Photo loaded! Click "Save Profile" to apply.');
-      }
-    };
-    reader.readAsDataURL(file);
+      // Smart crop to 256x256 square WebP (~15KB - 30KB)
+      const compressed = await compressAvatarImage(file, {
+        maxDimension: 256,
+        quality: 0.82
+      });
+
+      const kbSize = Math.round(compressed.compressedSizeBytes / 1024);
+      setEditAvatar(compressed.dataUrl);
+
+      // Persist to PostgreSQL database immediately
+      await playerApi.updateProfile({ avatarUrl: compressed.dataUrl });
+
+      // Update local storage and dispatch to all components
+      const updated = updatePlayerProfile({
+        avatarUrl: compressed.dataUrl
+      }, user?.id);
+
+      setProfile(updated);
+      await refreshProfile();
+      showToast(`Photo compressed (${kbSize} KB) & saved to database!`);
+    } catch (err: any) {
+      console.error('Photo upload error:', err);
+      showToast(err.message || 'Failed to upload image. Please try again.');
+    } finally {
+      setIsCompressing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
-  // Save customized profile
-  const handleSaveProfile = () => {
-    const updated = updatePlayerProfile({
-      name: editName.trim() || effectiveDisplayName,
-      avatarUrl: editAvatar,
-      flair: editFlair,
-      bio: editBio.trim(),
-      country: editCountry,
-      preferredStyle: editStyle,
-      favoriteOpening: editOpeningWhite,
-      favoriteOpeningBlack: editOpeningBlack,
-      statusMessage: editStatus.trim()
-    }, user?.id);
+  // Reset photo back to chess avatar
+  const handleRemovePhoto = async () => {
+    try {
+      setIsSaving(true);
+      const defaultIcon = '♞';
+      setEditAvatar(defaultIcon);
 
-    setProfile(updated);
-    setIsEditing(false);
-    showToast('Profile and avatar customized successfully!');
+      await playerApi.updateProfile({ avatarUrl: defaultIcon });
+
+      const updated = updatePlayerProfile({
+        avatarUrl: defaultIcon
+      }, user?.id);
+
+      setProfile(updated);
+      await refreshProfile();
+      showToast('Profile photo removed. Restored chess avatar.');
+    } catch (err: any) {
+      console.error('Remove photo error:', err);
+      showToast('Could not remove photo.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Save customized profile to PostgreSQL
+  const handleSaveProfile = async () => {
+    try {
+      setIsSaving(true);
+      const payload = {
+        displayName: editName.trim() || effectiveDisplayName,
+        avatarUrl: editAvatar,
+        flair: editFlair,
+        bio: editBio.trim(),
+        country: editCountry,
+        preferredStyle: editStyle,
+        favoriteOpening: editOpeningWhite,
+        favoriteOpeningBlack: editOpeningBlack,
+        statusMessage: editStatus.trim()
+      };
+
+      // Persist to PostgreSQL database
+      await playerApi.updateProfile(payload);
+
+      // Update local state and broadcast
+      const updated = updatePlayerProfile({
+        name: payload.displayName,
+        avatarUrl: payload.avatarUrl,
+        flair: payload.flair,
+        bio: payload.bio,
+        country: payload.country,
+        preferredStyle: payload.preferredStyle as any,
+        favoriteOpening: payload.favoriteOpening,
+        favoriteOpeningBlack: payload.favoriteOpeningBlack,
+        statusMessage: payload.statusMessage
+      }, user?.id);
+
+      setProfile(updated);
+      await refreshProfile();
+      setIsEditing(false);
+      showToast('Profile customization saved to PostgreSQL!');
+    } catch (err: any) {
+      console.error('Save profile error:', err);
+      showToast(err.message || 'Could not save profile changes.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleShareProfile = () => {
@@ -358,9 +459,13 @@ Join and train at: http://localhost:5173`;
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-16 sm:-mt-18">
             {/* Avatar & Player Details */}
             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
-              {/* Avatar Box with Online Dot & Hover Edit */}
-              <div className="relative group">
-                <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr ${avatarGradient} text-white flex items-center justify-center font-black text-4xl sm:text-5xl shadow-2xl ring-4 ring-[#181E29] dark:ring-[#151922] overflow-hidden`}>
+              {/* Avatar Box with Online Dot & Hover Click to Upload */}
+              <div
+                className="relative group cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+                title="Click to upload / change profile picture"
+              >
+                <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr ${avatarGradient} text-white flex items-center justify-center font-black text-4xl sm:text-5xl shadow-2xl ring-4 ring-[#181E29] dark:ring-[#151922] overflow-hidden relative`}>
                   {profile.avatarUrl && (profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('data:')) ? (
                     <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
                   ) : profile.avatarUrl && profile.avatarUrl.length > 0 && profile.avatarUrl !== '♞' ? (
@@ -368,30 +473,35 @@ Join and train at: http://localhost:5173`;
                   ) : (
                     <span className="text-4xl sm:text-5xl font-display">{profile.name ? profile.name[0]?.toUpperCase() : 'P'}</span>
                   )}
+
+                  {/* Dark hover overlay with Camera icon */}
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white backdrop-blur-[2px]">
+                    {isCompressing ? (
+                      <Loader2 className="w-6 h-6 text-[#9DD362] animate-spin" />
+                    ) : (
+                      <Camera className="w-6 h-6 text-[#9DD362]" />
+                    )}
+                    <span className="text-[10px] font-black uppercase tracking-wider text-center px-1">
+                      {isCompressing ? 'Saving...' : 'Change Photo'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Online Indicator */}
                 <div
-                  className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-[#81B64C] border-2 border-[#181E29] dark:border-[#151922]"
+                  className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-[#81B64C] border-2 border-[#181E29] dark:border-[#151922] z-10"
                   title="Online now"
                 />
 
                 {/* Edit Avatar Overlay Button */}
                 <button
-                  onClick={() => {
-                    setEditName(profile.name || effectiveDisplayName);
-                    setEditAvatar(profile.avatarUrl || '♞');
-                    setEditFlair(profile.flair || '♟️');
-                    setEditBio(profile.bio || '');
-                    setEditCountry(profile.country || 'Global 🌐');
-                    setEditStyle(profile.preferredStyle || 'Tactical');
-                    setEditOpeningWhite(profile.favoriteOpening || 'Italian Game');
-                    setEditOpeningBlack(profile.favoriteOpeningBlack || 'Sicilian Defense');
-                    setEditStatus(profile.statusMessage || '');
-                    setIsEditing(true);
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
                   }}
-                  className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-slate-900/90 hover:bg-[#81B64C] text-white border border-white/20 flex items-center justify-center shadow-lg transition-transform hover:scale-110 cursor-pointer"
-                  title="Customize Avatar & Profile"
+                  className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-slate-900/90 hover:bg-[#81B64C] text-white border border-white/20 flex items-center justify-center shadow-lg transition-transform hover:scale-110 cursor-pointer z-10"
+                  title="Upload / Change Profile Picture"
                 >
                   <Camera className="w-4 h-4" />
                 </button>
@@ -518,11 +628,29 @@ Join and train at: http://localhost:5173`;
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
+                    disabled={isCompressing}
                     className="h-11 px-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-bold text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Upload className="w-4 h-4 text-[#81B64C]" />
-                    <span>Upload Image</span>
+                    {isCompressing ? (
+                      <Loader2 className="w-4 h-4 text-[#81B64C] animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4 text-[#81B64C]" />
+                    )}
+                    <span>{isCompressing ? 'Compressing...' : 'Upload Photo'}</span>
                   </button>
+
+                  {editAvatar && (editAvatar.startsWith('http') || editAvatar.startsWith('data:')) && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      disabled={isSaving}
+                      className="h-11 px-3.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-xs font-bold text-rose-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Remove custom photo and reset to chess avatar"
+                    >
+                      <Trash2 className="w-4 h-4 text-rose-400" />
+                      <span>Remove Photo</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -664,10 +792,11 @@ Join and train at: http://localhost:5173`;
                 <button
                   type="button"
                   onClick={handleSaveProfile}
-                  className="px-6 py-2.5 rounded-xl bg-[#81B64C] hover:bg-[#689E39] text-white text-xs font-bold transition-colors shadow-md cursor-pointer flex items-center gap-2"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 rounded-xl bg-[#81B64C] hover:bg-[#689E39] text-white text-xs font-bold transition-colors shadow-md cursor-pointer flex items-center gap-2 disabled:opacity-60"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>Save Profile Changes</span>
+                  {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span>{isSaving ? 'Saving to Database...' : 'Save Profile Changes'}</span>
                 </button>
               </div>
             </div>
