@@ -485,7 +485,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       top: 0; left: 0; right: 0;
       z-index: 100;
       padding: 0 40px;
-      height: 84px;
+      height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -534,7 +534,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       display: flex;
       align-items: center;
       overflow: hidden;
-      padding-top: 84px;
+      padding-top: 72px;
       width: 100%;
     }
     .lp2-hero-grid {
@@ -977,7 +977,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               padding: 0,
             }}
           >
-            <ChessMasteryLogo size="lg" lightText={true} />
+            <ChessMasteryLogo size="md" lightText={true} />
           </button>
 
           {/* Desktop Nav links */}
