@@ -71,6 +71,19 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
             )}
           </button>
 
+          {/* Quick Sign Out from Header */}
+          <button
+            onClick={async () => {
+              await logout();
+              onNavigate('/landing');
+            }}
+            className="p-2 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+            aria-label="Sign out"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2533] transition-colors"

@@ -26,7 +26,8 @@ import {
   Play,
   Loader2,
   Trash2,
-  ArrowUpRight
+  ArrowUpRight,
+  LogOut
 } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -55,7 +56,7 @@ const COUNTRY_OPTIONS = [
 ];
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialProfile, onNavigate }) => {
-  const { user, profile: authProfile, refreshProfile } = useAuth();
+  const { user, profile: authProfile, refreshProfile, logout } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -461,6 +462,18 @@ http://localhost:5173`;
               >
                 <Share2 className="w-3.5 h-3.5" />
                 <span>Share</span>
+              </button>
+
+              <button
+                onClick={async () => {
+                  await logout();
+                  onNavigate('/landing');
+                }}
+                className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold text-xs border border-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="Log out of account"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
               </button>
 
               <button
