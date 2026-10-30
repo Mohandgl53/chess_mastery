@@ -7,3 +7,4 @@ ALTER TABLE "PlayerProfile" ADD COLUMN IF NOT EXISTS "favoriteOpening" TEXT DEFA
 ALTER TABLE "PlayerProfile" ADD COLUMN IF NOT EXISTS "favoriteOpeningBlack" TEXT DEFAULT 'Sicilian Defense';
 ALTER TABLE "PlayerProfile" ADD COLUMN IF NOT EXISTS "flair" TEXT DEFAULT '♟️';
 ALTER TABLE "PlayerProfile" ADD COLUMN IF NOT EXISTS "statusMessage" TEXT DEFAULT 'Ready to play & learn chess';
+

@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { PlayerProfile } from '../../types/user';
 import { useTheme } from '../../context/ThemeContext';
 import { ChessMasteryLogo } from '../brand/ChessMasteryLogo';
+import { useAuth } from '../../auth/AuthProvider';
 import {
   Menu,
   X,
@@ -15,7 +16,8 @@ import {
   TrendingUp,
   Settings,
   Sun,
-  Moon
+  Moon,
+  LogOut,
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -33,6 +35,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { logout } = useAuth();
 
   const handleMobileNav = (route: string) => {
     onNavigate(route);
@@ -140,6 +143,19 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Elo {userProfile.rating}</div>
               </div>
             </div>
+
+            {/* Sign Out Button */}
+            <button
+              onClick={async () => {
+                setMobileMenuOpen(false);
+                await logout();
+                onNavigate('/landing');
+              }}
+              className="w-full mt-2 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200/60 dark:border-red-800/40"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
           </div>
           <div className="flex-1" onClick={() => setMobileMenuOpen(false)} />
         </div>

@@ -113,3 +113,4 @@ export async function compressAvatarImage(
     img.src = objectUrl;
   });
 }
+

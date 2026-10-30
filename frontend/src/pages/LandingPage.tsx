@@ -21,6 +21,8 @@ import {
   Shield,
   Menu,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -166,40 +168,127 @@ const FeatureCard: React.FC<{
   );
 };
 
-// ─── Testimonial Card ─────────────────────────────────────────────────────────
-const TestimonialCard: React.FC<{
-  quote: string; name: string; elo: string; progress: string; avatar: string; delay: number; inView: boolean;
-}> = ({ quote, name, elo, progress, avatar, delay, inView }) => (
-  <div
-    className="lp2-testimonial-card"
-    style={{
+// ─── Testimonial Carousel ─────────────────────────────────────────────────────
+const TestimonialCarousel: React.FC<{ testimonials: Array<{ quote: string; name: string; elo: string; progress: string; avatar: string }>; inView: boolean }> = ({ testimonials, inView }) => {
+  const [active, setActive] = useState(0);
+  const total = testimonials.length;
+  const prev = () => setActive(a => (a === 0 ? total - 1 : a - 1));
+  const next = () => setActive(a => (a === total - 1 ? 0 : a + 1));
+
+  useEffect(() => {
+    if (!inView) return;
+    const id = setInterval(next, 5000);
+    return () => clearInterval(id);
+  }, [inView, total]);
+
+  const t = testimonials[active];
+  return (
+    <div style={{
       opacity: inView ? 1 : 0,
       transform: inView ? 'translateY(0)' : 'translateY(24px)',
-      transition: `opacity 0.65s ease ${delay}ms, transform 0.65s ease ${delay}ms`,
-    }}
-  >
-    <div style={{ display: 'flex', gap: 4, marginBottom: 14 }}>
-      {[...Array(5)].map((_,i) => <Star key={i} size={14} fill="#81B64C" color="#81B64C" />)}
-    </div>
-    <p style={{ color: '#c4b09a', fontSize: '0.88rem', lineHeight: 1.7, marginBottom: 18, flex: 1 }}>"{quote}"</p>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
+      transition: 'opacity 0.65s ease 0.1s, transform 0.65s ease 0.1s',
+    }}>
+      {/* Main carousel card */}
       <div style={{
-        width: 40, height: 40, borderRadius: '50%',
-        background: 'linear-gradient(135deg, #81B64C, #588329)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '1rem', fontWeight: 800, color: '#fff', flexShrink: 0,
-      }}>{avatar}</div>
-      <div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F5F0E8' }}>{name}</div>
-        <div style={{ fontSize: '0.72rem', color: '#a89080' }}>{elo}</div>
+        background: 'rgba(255,255,255,0.03)',
+        border: '1px solid rgba(129,182,76,0.22)',
+        borderRadius: 24,
+        padding: '36px 40px',
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: 240,
+      }}>
+        {/* Decorative accent line */}
+        <div style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: 'linear-gradient(180deg, #81B64C, #3a6a1a)' }} />
+
+        {/* Stars */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 18 }}>
+          {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="#81B64C" color="#81B64C" />)}
+        </div>
+
+        {/* Quote */}
+        <p style={{ color: '#c4b09a', fontSize: '1.05rem', lineHeight: 1.75, marginBottom: 28, fontStyle: 'italic' }}>
+          "{t.quote}"
+        </p>
+
+        {/* Author */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #81B64C, #588329)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.1rem', fontWeight: 800, color: '#fff', flexShrink: 0,
+            }}>{t.avatar}</div>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F5F0E8' }}>{t.name}</div>
+              <div style={{ fontSize: '0.75rem', color: '#a89080' }}>{t.elo}</div>
+            </div>
+          </div>
+          <div style={{
+            background: 'rgba(129,182,76,0.14)',
+            border: '1px solid rgba(129,182,76,0.3)',
+            borderRadius: 10, padding: '6px 14px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#81B64C' }}>{t.progress}</div>
+            <div style={{ fontSize: '0.65rem', color: '#7a6a60', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rating Gain</div>
+          </div>
+        </div>
       </div>
-      <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-        <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#81B64C' }}>{progress}</div>
-        <div style={{ fontSize: '0.68rem', color: '#7a6a60' }}>Rating Gain</div>
+
+      {/* Controls + dots */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 20 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {testimonials.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              style={{
+                width: i === active ? 28 : 8, height: 8,
+                borderRadius: 100,
+                background: i === active ? '#81B64C' : 'rgba(255,255,255,0.15)',
+                border: 'none', cursor: 'pointer',
+                transition: 'width 0.3s ease, background 0.3s ease',
+                padding: 0,
+              }}
+              aria-label={`Testimonial ${i + 1}`}
+            />
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={prev}
+            style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: '#c4b09a', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.2s',
+            }}
+            aria-label="Previous"
+          >
+            <ArrowLeft size={15} />
+          </button>
+          <button
+            onClick={next}
+            style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(129,182,76,0.18)',
+              border: '1px solid rgba(129,182,76,0.35)',
+              color: '#81B64C', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.2s',
+            }}
+            aria-label="Next"
+          >
+            <ArrowRight size={15} />
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Main Landing Page ────────────────────────────────────────────────────────
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
@@ -1067,8 +1156,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 transform: heroReady ? 'translateY(0)' : 'translateY(20px)',
                 transition: 'opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s',
               }}>
-                <span style={{ color: '#F5F0E8' }}>Master the</span><br />
-                <span className="lp2-hero-word">Royal Game.</span>
+                <span style={{ color: '#F5F0E8' }}>Precision Coaching.</span><br />
+                <span className="lp2-hero-word">Calculated Growth.</span>
               </h1>
 
               {/* Subheadline */}
@@ -1082,7 +1171,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 transform: heroReady ? 'translateY(0)' : 'translateY(20px)',
                 transition: 'opacity 0.7s ease 0.35s, transform 0.7s ease 0.35s',
               }}>
-                AI coaching that adapts to <em style={{ color: '#c4b09a', fontStyle: 'normal', fontWeight: 600 }}>your</em> weaknesses. Tactical training that builds real pattern recognition. Deep analysis that transforms how you think about chess.
+                Move beyond repetitive drills. Analyze tactical blindspots with grandmaster precision, sharpen instinctual motifs, and convert your opening knowledge into practical wins.
               </p>
 
               {/* CTA Buttons */}
@@ -1594,10 +1683,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             </h2>
           </div>
 
-          <div className="lp2-testimonials-grid">
-            {testimonials.map((t, i) => (
-              <TestimonialCard key={i} {...t} delay={i * 120} inView={testimonialsInView} />
-            ))}
+          <div style={{ maxWidth: 840, margin: '0 auto' }}>
+            <TestimonialCarousel testimonials={testimonials} inView={testimonialsInView} />
           </div>
         </section>
 

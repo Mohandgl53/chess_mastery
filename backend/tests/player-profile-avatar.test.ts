@@ -108,3 +108,4 @@ describe('Full-Stack Player Profile & Avatar Persistence Suite', () => {
     expect(res.body.profile.country).toBe('India 🇮🇳');
   });
 });
+

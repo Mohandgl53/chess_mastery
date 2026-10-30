@@ -141,3 +141,4 @@ export const ChessMasteryLogo: React.FC<ChessMasteryLogoProps> = ({
     </div>
   );
 };
+
