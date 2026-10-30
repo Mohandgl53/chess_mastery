@@ -59,20 +59,15 @@ export const ChessMasteryLogo: React.FC<ZugoraLogoProps> = ({
     );
   }
 
-  // Collapsed / icon-only emblem view (e.g. collapsed sidebar)
+  // Collapsed / icon-only emblem view (e.g. collapsed sidebar / reduced menu card drawer)
   return (
     <div className={`inline-flex items-center justify-center select-none ${className}`}>
-      <div
-        className="relative overflow-hidden rounded-xl shrink-0 flex items-center justify-center bg-black/60 border border-emerald-500/30 shadow-md"
+      <img
+        src="/zugora-emblem.png"
+        alt="Zugora Emblem"
         style={{ width: config.iconSize, height: config.iconSize }}
-      >
-        <img
-          src={logoSrc}
-          alt="Zugora Emblem"
-          className="w-[280%] max-w-none object-cover object-left"
-          style={{ transform: 'translateX(-2%)' }}
-        />
-      </div>
+        className="object-contain shrink-0 transition-transform duration-200 hover:scale-105"
+      />
     </div>
   );
 };
