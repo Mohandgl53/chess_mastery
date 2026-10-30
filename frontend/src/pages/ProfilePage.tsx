@@ -291,7 +291,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
   };
 
   const handleShareProfile = () => {
-    const text = `Chess Mastery Profile — ${profile.name} (@${effectiveUsername})
+    const text = `Zugora Profile — ${profile.name} (@${effectiveUsername})
 Rating: ${currentRating} (${rankTier.badge})
 Peak: ${peakRating} | Win Rate: ${winRate}% (${winCount}W / ${lossCount}L / ${drawCount}D)
 Training Streak: ${streak} Days
@@ -319,7 +319,7 @@ http://localhost:5173`;
     {
       id: 'first-step',
       title: 'First Step',
-      desc: 'Created your Chess Mastery account',
+      desc: 'Created your Zugora account',
       icon: Shield,
       unlocked: true
     },

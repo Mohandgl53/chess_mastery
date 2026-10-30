@@ -87,7 +87,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
             <div className="space-y-1.5">
               <h2 className="text-xl font-black text-white">Email Verified Successfully!</h2>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Your account is verified and ready. You can now sign in and enjoy all Chess Mastery features.
+                Your account is verified and ready. You can now sign in and enjoy all Zugora features.
               </p>
             </div>
             <button

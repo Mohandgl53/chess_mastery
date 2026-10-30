@@ -137,7 +137,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             isMobile ? 'text-2xl sm:text-3xl' : 'text-3xl xl:text-[34px]'
           }`}
         >
-          Join Chess Mastery
+          Join Zugora
         </h2>
         <p className="text-xs sm:text-sm text-stone-600 mt-1 font-normal">
           Start learning, practicing, and improving with AI-powered chess coaching.

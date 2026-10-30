@@ -374,7 +374,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       avatar: 'P',
     },
     {
-      quote: 'As a coach, I use Chess Mastery with all my students. The analysis tools save me hours of preparation and the reporting is remarkably accurate.',
+      quote: 'As a coach, I use Zugora with all my students. The analysis tools save me hours of preparation and the reporting is remarkably accurate.',
       name: 'Nikhil Kulkarni',
       elo: 'FIDE 2150 · Coach',
       progress: '+180',
@@ -1544,7 +1544,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               <span style={{ color: '#81B64C' }}>actually improve.</span>
             </h2>
             <p style={{ color: '#7a6a60', maxWidth: 520, margin: '0 auto', lineHeight: 1.7, fontSize: '0.95rem' }}>
-              Not another puzzle app. Chess Mastery is a complete training ecosystem — from your opening repertoire to your endgame precision.
+              Not another puzzle app. Zugora is a complete training ecosystem — from your opening repertoire to your endgame precision.
             </p>
           </div>
 
@@ -1734,7 +1734,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               </h2>
 
               <p style={{ color: '#8a7a70', maxWidth: 480, margin: '0 auto 34px', lineHeight: 1.7, fontSize: '0.98rem' }}>
-                Join 50,000+ players who've already chosen Chess Mastery as their competitive edge. Free forever. No credit card.
+                Join 50,000+ players who've already chosen Zugora as their competitive edge. Free forever. No credit card.
               </p>
 
               <div
@@ -1803,7 +1803,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             </div>
 
             <div style={{ fontSize: '0.78rem', color: '#4a3a35' }}>
-              © {new Date().getFullYear()} Chess Mastery. All rights reserved.
+              © {new Date().getFullYear()} Zugora. All rights reserved.
             </div>
           </div>
         </footer>

@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           onClick={() => onNavigate('/')}
           className="p-3 lg:p-4 flex items-center justify-center lg:justify-start cursor-pointer hover:opacity-95 transition-opacity"
-          title="Chess Mastery - Grandmaster AI Platform"
+          title="Zugora — Think Ahead. Play Better."
         >
           {/* Mobile/Collapsed icon view */}
           <div className="lg:hidden">

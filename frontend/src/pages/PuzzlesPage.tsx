@@ -838,7 +838,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
               </h2>
             </div>
             <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-2xl">
-              There are millions of tactical puzzles in the chess universe! Chess Mastery connects you directly with both
+              There are millions of tactical puzzles in the chess universe! Zugora connects you directly with both
               Chess.com and the Lichess Open Tactical Database (4,000,000+ positions evaluated by Stockfish NNUE).
             </p>
           </div>
