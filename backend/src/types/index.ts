@@ -159,4 +159,5 @@ export interface SafeAuthResponse {
     refreshToken: string;
     expiresIn: string;
   };
+  message?: string;
 }

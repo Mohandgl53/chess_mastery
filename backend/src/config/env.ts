@@ -31,7 +31,12 @@ const envSchema = z.object({
   REQUIRE_EMAIL_VERIFICATION: z
     .string()
     .optional()
-    .transform((val) => val === 'true')
+    .transform((val) => {
+      if (val !== undefined && val !== '') {
+        return val.trim().toLowerCase() === 'true';
+      }
+      return process.env.NODE_ENV === 'production';
+    })
 });
 
 const parsed = envSchema.safeParse(process.env);

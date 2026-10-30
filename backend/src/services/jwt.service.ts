@@ -157,6 +157,14 @@ export class JwtService {
       throw new UnauthorizedError('Refresh token has expired', 'REFRESH_TOKEN_EXPIRED');
     }
 
+    const isVerificationEnforced = env.REQUIRE_EMAIL_VERIFICATION || process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+    if (isVerificationEnforced && !storedToken.user.emailVerified && !storedToken.user.googleId) {
+      throw new UnauthorizedError(
+        'Email address must be verified before rotating tokens.',
+        'EMAIL_NOT_VERIFIED'
+      );
+    }
+
     // Generate new refresh token
     const newRawToken = generateRawToken();
     const newTokenHash = hashToken(newRawToken);

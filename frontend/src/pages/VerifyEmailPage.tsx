@@ -219,3 +219,4 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
     </div>
   );
 };
+

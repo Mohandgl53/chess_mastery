@@ -22,7 +22,9 @@ export async function register(req: Request, res: Response, next: NextFunction):
   try {
     const { safeResponse, rawToken } = await authService.register(req.body);
 
-    res.cookie(COOKIE_NAME, rawToken, getSessionCookieOptions());
+    if (rawToken) {
+      res.cookie(COOKIE_NAME, rawToken, getSessionCookieOptions());
+    }
 
     res.status(201).json(safeResponse);
   } catch (err) {
@@ -34,7 +36,9 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
   try {
     const { safeResponse, rawToken } = await authService.login(req.body);
 
-    res.cookie(COOKIE_NAME, rawToken, getSessionCookieOptions());
+    if (rawToken) {
+      res.cookie(COOKIE_NAME, rawToken, getSessionCookieOptions());
+    }
 
     res.status(200).json(safeResponse);
   } catch (err) {
@@ -46,7 +50,9 @@ export async function googleLogin(req: Request, res: Response, next: NextFunctio
   try {
     const { safeResponse, rawToken } = await authService.googleLogin(req.body.credential);
 
-    res.cookie(COOKIE_NAME, rawToken, getSessionCookieOptions());
+    if (rawToken) {
+      res.cookie(COOKIE_NAME, rawToken, getSessionCookieOptions());
+    }
 
     res.status(200).json(safeResponse);
   } catch (err) {

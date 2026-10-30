@@ -37,7 +37,7 @@ services:
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-mock}
       RESEND_API_KEY: ${RESEND_API_KEY}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
-      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-false}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-true}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
       interval: 15s

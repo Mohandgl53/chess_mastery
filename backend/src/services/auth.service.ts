@@ -52,14 +52,14 @@ function buildSafeProfile(profile: PlayerProfile): SafeProfile {
 
 export interface AuthResult {
   safeResponse: SafeAuthResponse & { devVerificationToken?: string };
-  rawToken: string;
+  rawToken?: string;
 }
 
 export class AuthService {
   /**
    * Register a new user with email and password.
    * Creates User + PlayerProfile atomically.
-   * Generates httpOnly session cookie token + JWT access/refresh token pair.
+   * When email verification is required, unverified accounts do NOT receive active sessions or JWT tokens.
    */
   async register(input: RegisterInput): Promise<AuthResult> {
     const existing = await userRepository.findByEmail(input.email);
@@ -82,14 +82,21 @@ export class AuthService {
       role: user.role
     };
 
-    // Create session for cookie
-    const rawToken = generateRawToken();
-    const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-    await sessionRepository.createSession(user.id, tokenHash, expiresAt);
+    const isVerificationEnforced = env.REQUIRE_EMAIL_VERIFICATION || process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
 
-    // Create JWT token pair for API/mobile clients
-    const tokens = await jwtService.generateTokenPair(authUser);
+    let rawToken: string | undefined = undefined;
+    let tokens: { accessToken: string; refreshToken: string; expiresIn: string } | undefined = undefined;
+
+    // Only establish an active session and issue JWT tokens if email verification is NOT enforced
+    if (!isVerificationEnforced) {
+      const sessionToken = generateRawToken();
+      const tokenHash = hashToken(sessionToken);
+      const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+      await sessionRepository.createSession(user.id, tokenHash, expiresAt);
+      rawToken = sessionToken;
+
+      tokens = await jwtService.generateTokenPair(authUser);
+    }
 
     // Generate secure single-use email verification token
     const rawVerificationToken = generateRawToken();
@@ -115,6 +122,9 @@ export class AuthService {
         user: buildSafeUser(user as User),
         profile: buildSafeProfile(profile),
         tokens,
+        message: isVerificationEnforced
+          ? 'Registration successful. Please verify your email address to activate your account.'
+          : undefined,
         devVerificationToken: process.env.NODE_ENV !== 'production' ? rawVerificationToken : undefined
       },
       rawToken
@@ -486,6 +496,11 @@ export class AuthService {
 
     if (session.expiresAt <= new Date()) {
       await sessionRepository.deleteByTokenHash(tokenHash);
+      return null;
+    }
+
+    const isVerificationEnforced = env.REQUIRE_EMAIL_VERIFICATION || process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+    if (isVerificationEnforced && !session.user.emailVerified && !session.user.googleId) {
       return null;
     }
 

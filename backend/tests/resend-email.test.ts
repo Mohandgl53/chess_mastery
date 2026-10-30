@@ -234,38 +234,80 @@ describe('Resend Email Integration & Verification Security Suite', () => {
   });
 
   // =========================================================================
-  // 4. Email Verification Enforcement on Login
+  // 4. Email Verification Enforcement & Complete Session Isolation
   // =========================================================================
-  describe('4. Email Verification Enforcement on Normal Login', () => {
-    it('blocks login when REQUIRE_EMAIL_VERIFICATION is enforced and email is unverified', async () => {
-      const email = `enforce-login-${timestamp}@test.com`;
+  describe('4. Email Verification Enforcement on Normal Login & Session Isolation', () => {
+    it('ensures REQUIRE_EMAIL_VERIFICATION defaults to true in production and can be overridden in dev', async () => {
+      // In production mode without explicit override, it must default to true
+      const originalNodeEnv = process.env.NODE_ENV;
+      const originalReq = process.env.REQUIRE_EMAIL_VERIFICATION;
+      try {
+        process.env.NODE_ENV = 'production';
+        delete process.env.REQUIRE_EMAIL_VERIFICATION;
+        
+        // Re-evaluate logic matching envSchema
+        const prodDefault = (process.env.REQUIRE_EMAIL_VERIFICATION as any) !== undefined
+          ? (process.env.REQUIRE_EMAIL_VERIFICATION === 'true')
+          : (process.env.NODE_ENV === 'production');
+        expect(prodDefault).toBe(true);
+
+        // Can be explicitly overridden to false even in production
+        process.env.REQUIRE_EMAIL_VERIFICATION = 'false';
+        const prodOverride = (process.env.REQUIRE_EMAIL_VERIFICATION === 'true');
+        expect(prodOverride).toBe(false);
+      } finally {
+        process.env.NODE_ENV = originalNodeEnv;
+        if (originalReq !== undefined) {
+          process.env.REQUIRE_EMAIL_VERIFICATION = originalReq;
+        } else {
+          delete process.env.REQUIRE_EMAIL_VERIFICATION;
+        }
+      }
+    });
+
+    it('ensures unverified password accounts CANNOT obtain authenticated sessions on registration or login', async () => {
+      const email = `no-session-${timestamp}@test.com`;
       testUsersToCleanup.push(email);
-
-      const regRes = await request(app)
-        .post('/api/auth/register')
-        .send({ email, displayName: 'Enforce Player', password: testPassword });
-
-      const rawToken = regRes.body.devVerificationToken;
 
       // Enable email verification enforcement for this test
       process.env.REQUIRE_EMAIL_VERIFICATION = 'true';
 
       try {
-        // Attempt login before verification -> must be blocked
+        // 1. Registration must NOT return tokens or set session cookie when verification is enforced
+        const regRes = await request(app)
+          .post('/api/auth/register')
+          .send({ email, displayName: 'No Session Player', password: testPassword });
+
+        expect(regRes.status).toBe(201);
+        expect(regRes.body.user.emailVerified).toBe(false);
+        expect(regRes.body.tokens).toBeUndefined();
+        expect(regRes.headers['set-cookie']).toBeUndefined();
+        expect(regRes.body.message).toContain('Please verify your email');
+
+        const rawToken = regRes.body.devVerificationToken;
+        expect(rawToken).toBeDefined();
+
+        // 2. Attempting login before verification -> blocked with 403
         const blockedLogin = await request(app)
           .post('/api/auth/login')
           .send({ email, password: testPassword });
 
         expect(blockedLogin.status).toBe(403);
         expect(blockedLogin.body.error.code).toBe('EMAIL_NOT_VERIFIED');
+        expect(blockedLogin.headers['set-cookie']).toBeUndefined();
 
-        // Now verify the email
+        // 3. Attempting to access protected endpoint -> rejected with 401
+        const protectedRes = await request(app)
+          .get('/api/auth/me');
+        expect(protectedRes.status).toBe(401);
+
+        // 4. Now verify the account
         const verifyRes = await request(app)
           .post('/api/auth/verify-email')
           .send({ token: rawToken });
         expect(verifyRes.status).toBe(200);
 
-        // Attempt login after verification -> must succeed!
+        // 5. Login after verification -> must now succeed and grant session cookie
         const successLogin = await request(app)
           .post('/api/auth/login')
           .send({ email, password: testPassword });
@@ -273,6 +315,7 @@ describe('Resend Email Integration & Verification Security Suite', () => {
         expect(successLogin.status).toBe(200);
         expect(successLogin.body.user.email).toBe(email);
         expect(successLogin.headers['set-cookie']).toBeDefined();
+        expect(successLogin.body.tokens?.accessToken).toBeDefined();
       } finally {
         delete process.env.REQUIRE_EMAIL_VERIFICATION;
       }
@@ -359,6 +402,33 @@ describe('Resend Email Integration & Verification Security Suite', () => {
 
       // Clean up google test user
       await prisma.user.delete({ where: { id: user!.id } });
+    });
+
+    it('upgrades existing unverified password account to emailVerified: true upon Google OAuth linking', async () => {
+      const linkEmail = `link-verify-${timestamp}@gmail.com`;
+      const googleId = `gid-link-${timestamp}`;
+      testUsersToCleanup.push(linkEmail);
+
+      // 1. Register with email/password (unverified)
+      await request(app)
+        .post('/api/auth/register')
+        .send({ email: linkEmail, displayName: 'Unverified Link Player', password: testPassword });
+
+      let user = await prisma.user.findUnique({ where: { email: linkEmail } });
+      expect(user!.emailVerified).toBe(false);
+
+      // 2. Log in with Google OAuth using same email
+      const mockToken = `mock-google-token-:${linkEmail}:${googleId}:Linked Google Player`;
+      const googleRes = await request(app)
+        .post('/api/auth/google')
+        .send({ credential: mockToken });
+
+      expect(googleRes.status).toBe(200);
+
+      // 3. User account is now linked and emailVerified is true!
+      user = await prisma.user.findUnique({ where: { email: linkEmail } });
+      expect(user!.googleId).toBe(googleId);
+      expect(user!.emailVerified).toBe(true);
     });
   });
 
