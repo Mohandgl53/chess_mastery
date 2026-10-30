@@ -465,18 +465,6 @@ http://localhost:5173`;
               </button>
 
               <button
-                onClick={async () => {
-                  await logout();
-                  onNavigate('/landing');
-                }}
-                className="px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold text-xs border border-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                title="Log out of account"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Log Out</span>
-              </button>
-
-              <button
                 onClick={() => onNavigate('/play')}
                 className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-900/40 transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
               >
