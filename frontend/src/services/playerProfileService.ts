@@ -137,13 +137,19 @@ export function loadPlayerProfile(
     const fallbackName = defaults?.displayName?.trim() || (defaults?.email ? defaults.email.split('@')[0] : parsed.name || 'Player');
     const fallbackRating = defaults?.rating ?? parsed.rating ?? 400;
 
+    const resolvedAvatar = (defaults?.avatarUrl && (defaults.avatarUrl.startsWith('http') || defaults.avatarUrl.startsWith('data:')))
+      ? defaults.avatarUrl
+      : (parsed.avatarUrl && (parsed.avatarUrl.startsWith('http') || parsed.avatarUrl.startsWith('data:')))
+        ? parsed.avatarUrl
+        : (defaults?.avatarUrl ?? parsed.avatarUrl ?? '♞');
+
     return {
       ...INITIAL_USER_PROFILE,
       ...parsed,
       id: userId || parsed.id || 'usr-local-player',
       name: parsed.name || fallbackName,
       username: parsed.username || (defaults?.email ? defaults.email.split('@')[0] : 'player'),
-      avatarUrl: defaults?.avatarUrl ?? parsed.avatarUrl ?? '♞',
+      avatarUrl: resolvedAvatar,
       bio: defaults?.bio ?? parsed.bio ?? INITIAL_USER_PROFILE.bio,
       country: defaults?.country ?? parsed.country ?? INITIAL_USER_PROFILE.country,
       preferredStyle: (defaults?.preferredStyle ?? parsed.preferredStyle ?? INITIAL_USER_PROFILE.preferredStyle) as any,

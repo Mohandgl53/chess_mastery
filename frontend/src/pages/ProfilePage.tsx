@@ -158,7 +158,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
           playerApi.getProfile().catch(() => null)
         ]);
 
-        if (profileRes) setPlayerStats(profileRes);
+        if (profileRes) {
+          setPlayerStats(profileRes);
+          if (profileRes.avatarUrl) {
+            setProfile((prev) => ({ ...prev, avatarUrl: profileRes.avatarUrl || prev.avatarUrl }));
+            setEditAvatar((prev) => (prev && (prev.startsWith('http') || prev.startsWith('data:'))) ? prev : (profileRes.avatarUrl || ''));
+            updatePlayerProfile({ avatarUrl: profileRes.avatarUrl }, user?.id);
+          }
+        }
         if (gamesRes.data && gamesRes.data.length > 0) {
           const mapped: SavedGame[] = gamesRes.data.map(mapBackendGameToSavedGame);
           setRecentGames(mapped);
@@ -169,6 +176,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
     }
     fetchGamesAndStats();
   }, [user?.id]);
+
+  // Multi-source fallback for user avatar (PostgreSQL playerStats -> AuthProfile -> LocalProfile)
+  const effectiveAvatar =
+    (profile.avatarUrl && (profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('data:')) && profile.avatarUrl) ||
+    (authProfile?.avatarUrl && (authProfile.avatarUrl.startsWith('http') || authProfile.avatarUrl.startsWith('data:')) && authProfile.avatarUrl) ||
+    (playerStats?.avatarUrl && (playerStats.avatarUrl.startsWith('http') || playerStats.avatarUrl.startsWith('data:')) && playerStats.avatarUrl) ||
+    (initialProfile.avatarUrl && (initialProfile.avatarUrl.startsWith('http') || initialProfile.avatarUrl.startsWith('data:')) && initialProfile.avatarUrl) ||
+    null;
 
   // Authoritative metrics
   const currentRating = authProfile?.rating ?? profile.rating ?? 400;
@@ -224,6 +239,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
       }, user?.id);
 
       setProfile(updated);
+      setPlayerStats((prev) => (prev ? { ...prev, avatarUrl: compressed.dataUrl } : null));
       await refreshProfile();
       showToast(`Profile photo compressed (${kb} KB) and saved!`);
     } catch (err: any) {
@@ -248,6 +264,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
       }, user?.id);
 
       setProfile(updated);
+      setPlayerStats((prev) => (prev ? { ...prev, avatarUrl: null } : null));
       await refreshProfile();
       showToast('Profile photo removed.');
     } catch (err: any) {
@@ -262,9 +279,13 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
   const handleSaveProfile = async () => {
     try {
       setIsSaving(true);
+      const finalAvatar = (editAvatar && (editAvatar.startsWith('http') || editAvatar.startsWith('data:')))
+        ? editAvatar
+        : (effectiveAvatar || null);
+
       const payload = {
         displayName: editName.trim() || effectiveDisplayName,
-        avatarUrl: editAvatar || null,
+        avatarUrl: finalAvatar,
         bio: editBio.trim(),
         country: editCountry
       };
@@ -279,6 +300,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialPr
       }, user?.id);
 
       setProfile(updated);
+      setPlayerStats((prev) => (prev ? { ...prev, avatarUrl: payload.avatarUrl || null } : null));
       await refreshProfile();
       setIsEditing(false);
       showToast('Profile updated successfully.');
@@ -390,11 +412,11 @@ http://localhost:5173`;
               {/* Clean Framed Avatar (NO intrusive hover in normal view) */}
               <div className="relative shrink-0">
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-emerald-900 via-emerald-800 to-teal-700 ring-2 ring-emerald-500/30 text-white flex items-center justify-center shadow-xl overflow-hidden">
-                  {profile.avatarUrl && (profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('data:')) ? (
-                    <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+                  {effectiveAvatar ? (
+                    <img src={effectiveAvatar} alt={profile.name || effectiveDisplayName} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-4xl sm:text-5xl font-black font-display tracking-tight text-emerald-100 select-none">
-                      {profile.name ? profile.name[0]?.toUpperCase() : 'P'}
+                      {profile.name ? profile.name[0]?.toUpperCase() : (effectiveDisplayName ? effectiveDisplayName[0]?.toUpperCase() : 'P')}
                     </span>
                   )}
                 </div>
@@ -444,7 +466,7 @@ http://localhost:5173`;
               <button
                 onClick={() => {
                   setEditName(profile.name || effectiveDisplayName);
-                  setEditAvatar(profile.avatarUrl || '');
+                  setEditAvatar(effectiveAvatar || '');
                   setEditBio(profile.bio || '');
                   setEditCountry(profile.country || 'Global');
                   setIsEditing(!isEditing);
@@ -498,11 +520,11 @@ http://localhost:5173`;
               <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-xl bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center shrink-0">
-                    {editAvatar && (editAvatar.startsWith('http') || editAvatar.startsWith('data:')) ? (
-                      <img src={editAvatar} alt="Preview" className="w-full h-full object-cover" />
+                    {(editAvatar || effectiveAvatar) && ((editAvatar || effectiveAvatar)!.startsWith('http') || (editAvatar || effectiveAvatar)!.startsWith('data:')) ? (
+                      <img src={editAvatar || effectiveAvatar || ''} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-xl font-bold text-zinc-400">
-                        {editName ? editName[0]?.toUpperCase() : 'P'}
+                        {editName ? editName[0]?.toUpperCase() : (effectiveDisplayName ? effectiveDisplayName[0]?.toUpperCase() : 'P')}
                       </span>
                     )}
                   </div>

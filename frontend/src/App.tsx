@@ -13,7 +13,8 @@ import { LearnPage } from './pages/LearnPage';
 import { LessonPage } from './pages/LessonPage';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { RouteErrorBoundary } from './components/common/RouteErrorBoundary';
-import { loadPlayerProfile } from './services/playerProfileService';
+import { loadPlayerProfile, updatePlayerProfile } from './services/playerProfileService';
+import { playerApi } from './services/api/playerApi';
 import type { PlayerProfile } from './types/user';
 
 // Code-split ALL heavy pages for fast initial bundle delivery
@@ -111,7 +112,19 @@ function AppInner() {
   };
 
   const [persistedProfile, setPersistedProfile] = useState<PlayerProfile>(() =>
-    loadPlayerProfile(user?.id, { displayName: user?.displayName, email: user?.email, rating: profile?.rating })
+    loadPlayerProfile(user?.id, {
+      displayName: user?.displayName,
+      email: user?.email,
+      rating: profile?.rating,
+      avatarUrl: profile?.avatarUrl,
+      bio: profile?.bio,
+      country: profile?.country,
+      preferredStyle: profile?.preferredStyle,
+      favoriteOpening: profile?.favoriteOpening,
+      favoriteOpeningBlack: profile?.favoriteOpeningBlack,
+      flair: profile?.flair,
+      statusMessage: profile?.statusMessage
+    })
   );
 
   useEffect(() => {
@@ -146,6 +159,23 @@ function AppInner() {
     profile?.flair
   ]);
 
+  // Sync profile directly from backend API when user logs in
+  useEffect(() => {
+    if (!user?.id) return;
+    playerApi.getProfile().then((p) => {
+      if (p && p.avatarUrl) {
+        const avatar = p.avatarUrl;
+        setPersistedProfile((prev) => {
+          if (prev.avatarUrl !== avatar) {
+            updatePlayerProfile({ avatarUrl: avatar }, user.id);
+            return { ...prev, avatarUrl: avatar };
+          }
+          return prev;
+        });
+      }
+    }).catch(() => {});
+  }, [user?.id]);
+
   useEffect(() => {
     const handleProfileChange = (e: Event) => {
       const customEvent = e as CustomEvent<PlayerProfile>;
@@ -158,6 +188,11 @@ function AppInner() {
   }, []);
 
   // Build PlayerProfile combining persisted customized profile and authoritative auth data
+  const effectiveAvatar =
+    (profile?.avatarUrl && (profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('data:')) && profile.avatarUrl) ||
+    (persistedProfile.avatarUrl && (persistedProfile.avatarUrl.startsWith('http') || persistedProfile.avatarUrl.startsWith('data:')) && persistedProfile.avatarUrl) ||
+    '♞';
+
   const userProfile: PlayerProfile = {
     ...persistedProfile,
     id: user?.id || persistedProfile.id,
@@ -170,7 +205,7 @@ function AppInner() {
     lossCount: profile?.gamesLost ?? persistedProfile.lossCount ?? 0,
     drawCount: profile?.gamesDrawn ?? persistedProfile.drawCount ?? 0,
     streakDays: profile?.currentStreak ?? persistedProfile.streakDays ?? 0,
-    avatarUrl: profile?.avatarUrl || persistedProfile.avatarUrl || '♞',
+    avatarUrl: effectiveAvatar,
     bio: profile?.bio || persistedProfile.bio,
     country: profile?.country || persistedProfile.country,
     preferredStyle: (profile?.preferredStyle as any) || persistedProfile.preferredStyle,
