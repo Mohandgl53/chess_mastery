@@ -35,6 +35,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConflict, setIsConflict] = useState(false);
 
   // Compute password strength (0 to 4)
   const getPasswordStrength = (pwd: string): number => {
@@ -76,6 +77,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     }
 
     setIsLoading(true);
+    setIsConflict(false);
     try {
       await register({
         displayName: displayName.trim(),
@@ -87,7 +89,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409) {
-          setError('An account with this email already exists. Try signing in instead.');
+          setIsConflict(true);
+          setError('An account with this email already exists. You can sign in or resend your verification link.');
         } else if (err.status === 400) {
           setError(err.message || 'Please check your input and try again.');
         } else if (err.status === 0) {
@@ -148,9 +151,29 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       <form id="register-form" onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5" noValidate>
         {/* Error Alert */}
         {error && (
-          <div className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="flex-1">{error}</span>
+            </div>
+            {isConflict && (
+              <div className="flex items-center gap-2 pt-1 border-t border-red-200/60">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('/login')}
+                  className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-bold text-[11px] transition-colors cursor-pointer"
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`)}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-colors cursor-pointer"
+                >
+                  Resend Verification Email
+                </button>
+              </div>
+            )}
           </div>
         )}
 

@@ -47,40 +47,44 @@ export const authApi = {
    * Request password reset link.
    */
   async forgotPassword(email: string): Promise<{ message: string }> {
-    return apiClient<{ message: string }>('/auth/forgot-password', {
+    const res = await apiClient<{ data?: { message: string }; message?: string }>('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email })
     });
+    return { message: res.data?.message || res.message || 'If an account exists, a reset link has been dispatched.' };
   },
 
   /**
    * Submit password reset with token.
    */
   async resetPassword(token: string, password: string): Promise<{ message: string }> {
-    return apiClient<{ message: string }>('/auth/reset-password', {
+    const res = await apiClient<{ data?: { message: string }; message?: string }>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify({ token, password })
     });
+    return { message: res.data?.message || res.message || 'Password has been updated successfully.' };
   },
 
   /**
    * Verify email address using the token received in the verification email.
    */
   async verifyEmail(token: string): Promise<{ message: string }> {
-    return apiClient<{ message: string }>('/auth/verify-email', {
+    const res = await apiClient<{ data?: { message: string }; message?: string }>('/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify({ token })
     });
+    return { message: res.data?.message || res.message || 'Email verified successfully.' };
   },
 
   /**
    * Request a new verification email for an unverified account.
    */
   async resendVerification(email: string): Promise<{ message: string }> {
-    return apiClient<{ message: string }>('/auth/resend-verification', {
+    const res = await apiClient<{ data?: { message: string }; message?: string }>('/auth/resend-verification', {
       method: 'POST',
       body: JSON.stringify({ email })
     });
+    return { message: res.data?.message || res.message || 'A verification link has been dispatched if the account exists.' };
   },
 
   /**

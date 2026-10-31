@@ -181,11 +181,12 @@ export class EmailService {
     const html = this.buildHtmlWrapper(subject, bodyContent);
     const text = `Welcome to Chess Mastery, ${displayName}!\n\nPlease verify your email address by opening this link in your browser:\n${verificationUrl}\n\nThis link is single-use and expires in 24 hours.\n\nIf you did not register for Chess Mastery, please ignore this email.`;
 
-    this.sentEmails.push({
+    const isProd = process.env.NODE_ENV === 'production';
+    this.recordSentEmail({
       to,
       subject,
       type: 'VERIFICATION',
-      token,
+      token: isProd ? undefined : token,
       sentAt: new Date()
     });
 
@@ -219,11 +220,12 @@ export class EmailService {
     const html = this.buildHtmlWrapper(subject, bodyContent);
     const text = `Hello ${displayName},\n\nA password reset request was made for your Chess Mastery account.\nReset your password here:\n${resetUrl}\n\nThis link expires in 1 hour.\nIf you did not make this request, you can safely ignore this email.`;
 
-    this.sentEmails.push({
+    const isProd = process.env.NODE_ENV === 'production';
+    this.recordSentEmail({
       to,
       subject,
       type: 'PASSWORD_RESET',
-      token,
+      token: isProd ? undefined : token,
       sentAt: new Date()
     });
 
@@ -253,7 +255,7 @@ export class EmailService {
     const html = this.buildHtmlWrapper(subject, bodyContent);
     const text = `Hello ${displayName},\n\nYour Chess Mastery password was changed at ${new Date().toUTCString()}.\n\nIf you did not make this change, please reset your password immediately.`;
 
-    this.sentEmails.push({
+    this.recordSentEmail({
       to,
       subject,
       type: 'PASSWORD_CHANGED',
@@ -264,7 +266,26 @@ export class EmailService {
   }
 
   /**
-   * Internal helper that sends via Resend SDK with safe error handling
+   * Safely record sent emails in memory for test assertions without memory growth
+   */
+  private recordSentEmail(record: SentEmailRecord): void {
+    this.sentEmails.push(record);
+    if (this.sentEmails.length > 100) {
+      this.sentEmails.shift();
+    }
+  }
+
+  /**
+   * Sanitize log messages by redacting personal email addresses, tokens, and credentials
+   */
+  public sanitizeLogMessage(message: string): string {
+    return message
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]')
+      .replace(/(token|secret|key|password)[=:\s]+[a-zA-Z0-9-_]+/gi, '$1=[REDACTED]');
+  }
+
+  /**
+   * Internal helper that sends via Resend SDK with safe error handling and retry for transient glitches
    */
   private async dispatchEmail(options: {
     to: string;
@@ -280,37 +301,62 @@ export class EmailService {
       };
     }
 
-    try {
-      const response = await this.resend.emails.send({
-        from: `Chess Mastery <${this.fromEmail}>`,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text
-      });
+    let lastError: string | undefined;
 
-      if (response.error) {
-        console.warn(
-          `[EmailService] Resend API reported an issue (${response.error.name}): ${response.error.message}`
-        );
+    // Retry once for transient errors (rate limit or temporary network blip)
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await this.resend.emails.send({
+          from: `Chess Mastery <${this.fromEmail}>`,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text
+        });
+
+        if (response.error) {
+          lastError = response.error.message;
+          const isTransient =
+            response.error.name === 'rate_limit_exceeded' ||
+            response.error.name === 'internal_server_error';
+
+          if (attempt === 1 && isTransient) {
+            await new Promise((resolve) => setTimeout(resolve, 600));
+            continue;
+          }
+
+          console.warn(
+            `[EmailService] Resend API reported an issue (${response.error.name}): ${this.sanitizeLogMessage(response.error.message || '')}`
+          );
+          return {
+            success: false,
+            error: response.error.message
+          };
+        }
+
+        return {
+          success: true,
+          messageId: response.data?.id
+        };
+      } catch (err: any) {
+        lastError = err?.message || 'Failed to dispatch email via Resend';
+        if (attempt === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          continue;
+        }
+
+        console.warn('[EmailService] Resend dispatch caught an error:', this.sanitizeLogMessage(lastError || ''));
         return {
           success: false,
-          error: response.error.message
+          error: lastError
         };
       }
-
-      return {
-        success: true,
-        messageId: response.data?.id
-      };
-    } catch (err: any) {
-      // Handle recipient restrictions (e.g., onboarding@resend.dev sandbox can only send to verified account owner)
-      console.warn('[EmailService] Resend dispatch caught an error:', err?.message || err);
-      return {
-        success: false,
-        error: err?.message || 'Failed to dispatch email via Resend'
-      };
     }
+
+    return {
+      success: false,
+      error: lastError || 'Failed to dispatch email after retry'
+    };
   }
 }
 

@@ -16,6 +16,7 @@ import {
   Star,
   AlertCircle,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 import { ChessMasteryLogo } from '../components/brand/ChessMasteryLogo';
 import { useAuth } from '../auth/AuthProvider';
@@ -39,6 +40,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -84,6 +87,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsUnverified(false);
 
     if (authMethod === 'phone') {
       if (!phoneNumber.trim()) {
@@ -113,6 +117,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
         if (err.status === 401) {
           setError('Invalid email or password.');
         } else if (err.code === 'EMAIL_NOT_VERIFIED' || (err.status === 403 && err.message.toLowerCase().includes('verif'))) {
+          setIsUnverified(true);
           setError('Your email is not verified yet. Please check your inbox or click "Resend verification" below.');
         } else if (err.status === 0) {
           setError('Cannot connect to server. Please check your connection.');
@@ -124,6 +129,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      setError('Please enter your email in the field above, then click Resend.');
+      return;
+    }
+    try {
+      setIsResendingVerification(true);
+      setError(null);
+      setSuccessMessage(null);
+      const res = await authApi.resendVerification(email.trim().toLowerCase());
+      setSuccessMessage(res.message || 'A fresh verification link has been sent to your email.');
+      setIsUnverified(false);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to resend verification email.');
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -229,9 +253,35 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
       <form id="login-form" onSubmit={handleSubmit} className="space-y-3 sm:space-y-4" noValidate>
         {/* Error Alert */}
         {error && (
-          <div className="flex items-start gap-2 p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span className="flex-1">{error}</span>
+            </div>
+            {isUnverified && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-red-200/60">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResendingVerification}
+                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isResendingVerification ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Mail className="w-3 h-3" />
+                  )}
+                  <span>Resend Verification Link</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`)}
+                  className="text-[11px] font-semibold text-red-700 hover:underline cursor-pointer"
+                >
+                  Verification Page &rarr;
+                </button>
+              </div>
+            )}
           </div>
         )}
 

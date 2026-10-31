@@ -7,14 +7,15 @@ import { ApiError } from '../services/api/client';
 interface VerifyEmailPageProps {
   onNavigate: (route: string) => void;
   token?: string;
+  initialEmail?: string;
 }
 
-export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, token }) => {
+export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, token, initialEmail }) => {
   const [status, setStatus] = useState<'VERIFYING' | 'SUCCESS' | 'ERROR' | 'PROMPT'>(
     token ? 'VERIFYING' : 'PROMPT'
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [resendEmail, setResendEmail] = useState('');
+  const [resendEmail, setResendEmail] = useState(initialEmail || '');
   const [resendSuccess, setResendSuccess] = useState<string | null>(null);
   const [isResending, setIsResending] = useState(false);
 

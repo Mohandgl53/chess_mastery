@@ -228,8 +228,10 @@ function AppInner() {
 
   if (currentRoute.startsWith('/verify-email')) {
     const query = currentRoute.includes('?') ? currentRoute.split('?')[1] : window.location.search.replace('?', '');
-    const token = new URLSearchParams(query).get('token') || undefined;
-    return <VerifyEmailPage onNavigate={handleNavigate} token={token} />;
+    const searchParams = new URLSearchParams(query);
+    const token = searchParams.get('token') || undefined;
+    const initialEmail = searchParams.get('email') || undefined;
+    return <VerifyEmailPage onNavigate={handleNavigate} token={token} initialEmail={initialEmail} />;
   }
 
   if (currentRoute.startsWith('/reset-password')) {
