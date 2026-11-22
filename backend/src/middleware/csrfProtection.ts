@@ -13,8 +13,8 @@ const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
  *
  * Safe methods (GET, HEAD, OPTIONS) are not validated.
  *
- * In test environments (no Origin header), validation is skipped
- * to allow automated tests to function correctly.
+ * Legacy integration tests omit Origin; they may opt into strict validation
+ * with the `x-test-csrf-enforce: true` header (test environment only).
  *
  * SameSite=Lax on the session cookie provides additional CSRF protection
  * for most cross-site attack vectors.
@@ -32,15 +32,29 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
 
   const origin = req.headers.origin;
 
-  // If no Origin header is present (e.g., server-to-server, curl, automated tests)
-  // allow the request through. The session cookie SameSite=Lax provides base protection.
+  // Cookie-authenticated unsafe requests must carry an allowed Origin so that
+  // cross-site form/fetch submissions are rejected. Supertest suites omit Origin;
+  // they can opt into the strict path with x-test-csrf-enforce in test mode.
   if (!origin) {
-    return next();
+    if (
+      env.NODE_ENV === 'test' &&
+      String(req.headers['x-test-csrf-enforce'] ?? '').toLowerCase() !== 'true'
+    ) {
+      return next();
+    }
+    res.status(403).json({
+      error: {
+        code: 'CSRF_FORBIDDEN',
+        message: 'Origin header is required for unsafe methods'
+      }
+    });
+    return;
   }
 
   // Normalize: compare without trailing slash
   const allowedOrigins = [
     env.CLIENT_URL.replace(/\/$/, ''),
+    ...(env.PUBLIC_CLIENT_URL ? [env.PUBLIC_CLIENT_URL.replace(/\/$/, '')] : []),
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost',

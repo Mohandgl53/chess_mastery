@@ -104,6 +104,8 @@ export interface CreateGameAnalysisInput {
 }
 
 export interface CreateGameInput {
+  /** Client-generated stable key (SavedGame.id). Server generates one if absent. */
+  idempotencyKey?: string;
   opponentName: string;
   opponentType?: OpponentType;
   playerColor?: PlayerColor;

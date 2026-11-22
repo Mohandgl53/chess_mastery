@@ -27,6 +27,8 @@ export const createGameAnalysisSchema = z.object({
 });
 
 export const createGameSchema = z.object({
+  // Stable client-generated key (SavedGame.id) used to deduplicate save retries.
+  idempotencyKey: z.string().trim().min(1).max(200).optional(),
   opponentName: z.string().min(1, 'Opponent name is required'),
   opponentType: z.nativeEnum(OpponentType).default(OpponentType.AI),
   playerColor: z.nativeEnum(PlayerColor).default(PlayerColor.WHITE),

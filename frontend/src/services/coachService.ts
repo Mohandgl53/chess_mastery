@@ -1,7 +1,6 @@
-import { Chess } from 'chess.js';
 import { CoachMessage, CoachMode, CoachPromptOption } from '../types/coach';
 import { OpeningInfo, PostGameAnalysis, GameResult } from '../types/game';
-import { EvaluationData, MoveRecord } from '../types/chess';
+import { MoveRecord } from '../types/chess';
 import { openingService } from './openingService';
 import { chessEngine } from './chessEngine';
 
@@ -263,7 +262,7 @@ if (['e4', 'd4', 'e5', 'd5'].includes(moveSan)) {
     };
   }
 
-  async getHint(fen: string, playerColor: 'w' | 'b'): Promise<CoachMessage> {
+  async getHint(fen: string, _playerColor: 'w' | 'b'): Promise<CoachMessage> {
     const candidates = await chessEngine.getCandidateMoves(fen, 1);
     const topCandidate = candidates[0];
 
@@ -297,7 +296,6 @@ if (['e4', 'd4', 'e5', 'd5'].includes(moveSan)) {
     opening?: OpeningInfo
   ): Promise<CoachMessage> {
     const lowerQuery = query.toLowerCase();
-    const chess = new Chess(fen);
     const candidates = await chessEngine.getCandidateMoves(fen, 3);
     const openingName = opening?.name || 'Current Opening';
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, ArrowRight, Mail, RefreshCw } from 'lucide-react';
 import { ChessMasteryLogo } from '../components/brand/ChessMasteryLogo';
 import { authApi } from '../services/api/authApi';
-import { ApiError } from '../services/api/client';
 
 interface VerifyEmailPageProps {
   onNavigate: (route: string) => void;
@@ -63,7 +62,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0F141C] text-white">
+    <main className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0F141C] text-white">
       <div className="w-full max-w-md bg-[#161D28] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-center">
@@ -93,7 +92,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
             </div>
             <button
               onClick={() => onNavigate('/login')}
-              className="w-full py-3 rounded-xl bg-[#81B64C] hover:bg-[#689E39] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+              className="w-full py-3 rounded-xl bg-[#047857] hover:bg-[#065F46] text-white min-h-[44px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
             >
               <span>Continue to Sign In</span>
               <ArrowRight className="w-4 h-4" />
@@ -116,18 +115,21 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
 
             {/* Resend Verification Form */}
             <form onSubmit={handleResend} className="space-y-3 text-left pt-2">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              <label htmlFor="resend-verification-email" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Enter your email to request a new link
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="resend-verification-email"
+                  name="email"
+                  autoComplete="email"
                   type="email"
                   required
                   value={resendEmail}
                   onChange={(e) => setResendEmail(e.target.value)}
                   placeholder="player@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
+                  className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
                 />
               </div>
 
@@ -140,7 +142,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
               <button
                 type="submit"
                 disabled={isResending}
-                className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-700"
+                className="w-full py-2.5 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-700"
               >
                 {isResending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
                 <span>Resend Verification Email</span>
@@ -149,7 +151,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
 
             <button
               onClick={() => onNavigate('/login')}
-              className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+              className="min-h-[44px] px-2 text-xs text-slate-400 hover:text-white underline cursor-pointer"
             >
               Back to Sign In
             </button>
@@ -167,18 +169,21 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
             </div>
 
             <form onSubmit={handleResend} className="space-y-3">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              <label htmlFor="resend-verification-email" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Your Email Address
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="resend-verification-email"
+                  name="email"
+                  autoComplete="email"
                   type="email"
                   required
                   value={resendEmail}
                   onChange={(e) => setResendEmail(e.target.value)}
                   placeholder="player@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
+                  className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
                 />
               </div>
 
@@ -197,7 +202,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
               <button
                 type="submit"
                 disabled={isResending}
-                className="w-full py-3 rounded-xl bg-[#81B64C] hover:bg-[#689E39] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                className="w-full py-3 rounded-xl bg-[#047857] hover:bg-[#065F46] text-white min-h-[44px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
               >
                 {isResending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                 <span>Send Verification Link</span>
@@ -207,7 +212,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
             <div className="text-center pt-2">
               <button
                 onClick={() => onNavigate('/login')}
-                className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                className="min-h-[44px] px-2 text-xs text-slate-400 hover:text-white underline cursor-pointer"
               >
                 Back to Sign In
               </button>
@@ -215,7 +220,7 @@ export const VerifyEmailPage: React.FC<VerifyEmailPageProps> = ({ onNavigate, to
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

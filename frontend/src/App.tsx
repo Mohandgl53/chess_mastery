@@ -1,12 +1,14 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthProvider';
 import { ThemeProvider } from './context/ThemeContext';
+import { SettingsProvider } from './context/SettingsContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './components/layout/AppLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
 import { LandingPage } from './pages/LandingPage';
 import { LearnPage } from './pages/LearnPage';
@@ -156,6 +158,10 @@ function AppInner() {
     profile?.avatarUrl,
     profile?.bio,
     profile?.country,
+    profile?.preferredStyle,
+    profile?.favoriteOpening,
+    profile?.favoriteOpeningBlack,
+    profile?.statusMessage,
     profile?.flair
   ]);
 
@@ -238,6 +244,12 @@ function AppInner() {
     const query = currentRoute.includes('?') ? currentRoute.split('?')[1] : window.location.search.replace('?', '');
     const token = new URLSearchParams(query).get('token') || undefined;
     return <ResetPasswordPage onNavigate={handleNavigate} token={token} />;
+  }
+
+  if (currentRoute.startsWith('/forgot-password')) {
+    const query = currentRoute.includes('?') ? currentRoute.split('?')[1] : window.location.search.replace('?', '');
+    const initialEmail = new URLSearchParams(query).get('email') || undefined;
+    return <ForgotPasswordPage onNavigate={handleNavigate} initialEmail={initialEmail} />;
   }
 
   if (currentRoute.startsWith('/login')) {
@@ -364,7 +376,9 @@ export function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ThemeProvider>
-          <AppInner />
+          <SettingsProvider>
+            <AppInner />
+          </SettingsProvider>
         </ThemeProvider>
       </AuthProvider>
     </ErrorBoundary>

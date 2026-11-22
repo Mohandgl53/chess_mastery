@@ -21,18 +21,15 @@ export const ChessMasteryLogo: React.FC<ZugoraLogoProps> = ({
   lightText = false,
   variant = 'auto'
 }) => {
-  // Use current theme to pick correct asset when set to auto
+  // Use current theme to pick correct asset when set to auto.
+  // ThemeProvider wraps the whole app (see App.tsx), so this hook is always
+  // safe to call unconditionally — calling hooks inside try/catch violates
+  // the Rules of Hooks and can change hook order between renders.
+  const { theme } = useTheme();
   let isDark = lightText;
-  try {
-    const { theme } = useTheme();
-    if (variant === 'dark') isDark = true;
-    else if (variant === 'light') isDark = false;
-    else isDark = lightText || theme === 'dark';
-  } catch {
-    if (variant === 'dark') isDark = true;
-    else if (variant === 'light') isDark = false;
-    else isDark = lightText;
-  }
+  if (variant === 'dark') isDark = true;
+  else if (variant === 'light') isDark = false;
+  else isDark = lightText || theme === 'dark';
 
   const logoSrc = isDark ? '/zugora-logo-dark.png' : '/zugora-logo-light.png';
 

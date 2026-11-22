@@ -14,6 +14,8 @@ import { gameService } from '../services/gameService';
 import { SavedGame } from '../types/game';
 import { sounds } from '../utils/soundEffects';
 import { detectChessTheme } from '../utils/analyzeUtils';
+import { decrementClockSeconds } from '../utils/gameRules';
+import { useSettings } from '../context/SettingsContext';
 import {
   PieceColor,
   PieceType,
@@ -38,13 +40,9 @@ import {
   Play,
   Sparkles,
   Clock,
-  Shield,
-  Zap,
   Check,
   RotateCcw,
   Shuffle,
-  ChevronRight,
-  Award,
   Maximize2,
   Minimize2,
   X
@@ -151,7 +149,11 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
   // Active Game State
   const [playerColor, setPlayerColor] = useState<PieceColor>('w');
   const [difficulty, setDifficulty] = useState<GameDifficulty>('Intermediate');
-  const [coachMode, setCoachMode] = useState<CoachMode>('FULL_COACHING');
+  const { settings, saveSettings } = useSettings();
+  const coachMode = settings.coachMode;
+  const setCoachMode = (next: CoachMode) => {
+    if (next !== settings.coachMode) saveSettings({ ...settings, coachMode: next });
+  };
   const [boardOrientation, setBoardOrientation] = useState<BoardOrientation>('white');
   const [isNewGameModalOpen, setIsNewGameModalOpen] = useState(false);
 
@@ -211,8 +213,19 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
   const [lastRatingDelta, setLastRatingDelta] = useState<number | undefined>(undefined);
   const [isCoachDrawerOpen, setIsCoachDrawerOpen] = useState(false);
   const [isFocusBoardMode, setIsFocusBoardMode] = useState(false);
+  const [unsavedGame, setUnsavedGame] = useState<SavedGame | null>(null);
 
   const isMounted = useRef(true);
+
+  // Surface any game that could not be persisted on a previous visit.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('chess_mastery_unsaved_game');
+      if (raw) setUnsavedGame(JSON.parse(raw) as SavedGame);
+    } catch {
+      // Ignore corrupt payloads; the stale key is removed below on dismiss.
+    }
+  }, []);
 
   // Helper to force board re-render
   const updateBoard = useCallback(() => {
@@ -441,7 +454,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
     }
 
     return false;
-  }, [chess, playerColor, userProfile, difficulty, opening, persistCompletedGame, runFullGameAnalysis]);
+  }, [chess, playerColor, userProfile, selectedBot, opening, persistCompletedGame, runFullGameAnalysis]);
 
   // Execute bot move when it's AI turn
   const handleBotMove = useCallback(async () => {
@@ -509,22 +522,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
         setIsAiThinking(false);
       }
     }
-  }, [chess, difficulty, playerColor, updateCapturedPieces, updateBoard, checkGameCompletion]);
-
-  // Clocks timer effect
-  useEffect(() => {
-    if (gameStatus !== 'IN_PROGRESS' && gameStatus !== 'CHECK') return;
-
-    const timer = setInterval(() => {
-      if (chess.turn() === playerColor) {
-        setPlayerTime((prev) => Math.max(0, prev - 1));
-      } else {
-        setOpponentTime((prev) => Math.max(0, prev - 1));
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [chess, gameStatus, playerColor]);
+  }, [chess, difficulty, playerColor, userProfile.rating, updateCapturedPieces, updateBoard, checkGameCompletion]);
 
   // Handle human move on board
   const handlePlayerMove = async ({
@@ -863,7 +861,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
             handleFlagFall('PLAYER');
             return 0;
           }
-          return prev - 1;
+          return decrementClockSeconds(prev);
         });
       } else {
         setOpponentTime((prev) => {
@@ -872,7 +870,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
             handleFlagFall('OPPONENT');
             return 0;
           }
-          return prev - 1;
+          return decrementClockSeconds(prev);
         });
       }
     }, 1000);
@@ -885,11 +883,42 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
       {!hasStartedMatch ? (
         /* Match Setup Lobby: User enters /play and selects bot, side, and time before starting */
         <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Recovery for a game that failed to persist on a previous visit */}
+          {unsavedGame && (
+            <div className="p-4 rounded-xl border border-amber-400/40 bg-amber-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-amber-200">A finished game could not be saved</p>
+                <p className="text-xs text-amber-200/70">
+                  We kept it on this device. Retry now, or dismiss to discard it.
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={async () => {
+                    await persistCompletedGame(unsavedGame);
+                    if (!localStorage.getItem('chess_mastery_unsaved_game')) setUnsavedGame(null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 text-amber-950 hover:bg-amber-300"
+                >
+                  Retry save
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('chess_mastery_unsaved_game');
+                    setUnsavedGame(null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20 text-slate-600 dark:text-zinc-300 hover:bg-white/10"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
           {/* Hero Banner */}
           <div className="p-6 rounded-2xl bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-[#273042] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#81B64C]/15 text-[#81B64C] dark:text-emerald-400 border border-[#81B64C]/30 uppercase tracking-wider flex items-center gap-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#81B64C]/15 text-[#3F6B1B] dark:text-emerald-400 border border-[#81B64C]/30 uppercase tracking-wider flex items-center gap-1">
                   <Bot className="w-3 h-3" />
                   Bot Match Setup
                 </span>
@@ -983,10 +1012,10 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
                             <div className="flex items-center gap-2">
                               <span className="text-xl">{bot.avatar}</span>
                               <div>
-                                <h3 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                <h2 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1.5">
                                   <span>{bot.name}</span>
                                   {isSelected && <Check className="w-3.5 h-3.5 text-[#81B64C]" />}
-                                </h3>
+                                </h2>
                                 <span className="text-[10px] text-slate-500 dark:text-zinc-400 block">
                                   {bot.title}
                                 </span>
@@ -1298,7 +1327,7 @@ export const PlayPage: React.FC<PlayPageProps> = ({ userProfile, onNavigate }) =
                 <button
                   type="button"
                   onClick={() => setIsCoachDrawerOpen(true)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-[#1A1F2B] hover:bg-slate-800 dark:hover:bg-[#252C3D] border border-slate-200 dark:border-[#273042] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
+                  className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-slate-900 dark:bg-[#1A1F2B] hover:bg-slate-800 dark:hover:bg-[#252C3D] border border-slate-200 dark:border-[#273042] text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-sm"
                 >
                   <Sparkles className="w-4 h-4 text-emerald-400" />
                   <span>Open Coach Analysis & Move List ({moves.length} moves)</span>

@@ -79,13 +79,14 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     setIsLoading(true);
     setIsConflict(false);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       await register({
         displayName: displayName.trim(),
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         confirmPassword,
       });
-      onNavigate('/');
+      onNavigate(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 409) {
@@ -106,29 +107,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleSocialClick = async (provider: string) => {
-    if (provider === 'Google') {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const googleObj = (window as any).google;
-        if (googleObj?.accounts?.id) {
-          googleObj.accounts.id.prompt();
-          return;
-        }
-        setError('Google Sign-In is enabled on the backend. Please configure your Google Client ID or use email registration.');
-      } catch (err: any) {
-        setError(err?.message || 'Google sign-up failed');
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      setError(`${provider} sign-up is enabled for linked accounts. Please register using your email address.`);
-    }
-  };
-
   // Reusable Register Form Component
-  const renderRegisterForm = (isMobile = false) => (
+  const renderRegisterForm = (isMobile = false) => {
+    const formSuffix = isMobile ? 'mobile' : 'desktop';
+    return (
     <div className={`w-full ${isMobile ? 'max-w-[420px] mx-auto' : ''}`}>
       {/* Header Eyebrow & Title */}
       <div className={isMobile ? 'mb-4' : 'mb-6'}>
@@ -148,7 +130,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       </div>
 
       {/* Form */}
-      <form id="register-form" onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5" noValidate>
+      <form id={`register-form-${formSuffix}`} onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5" noValidate>
         {/* Error Alert */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-2">
@@ -161,14 +143,14 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => onNavigate('/login')}
-                  className="px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-bold text-[11px] transition-colors cursor-pointer"
+                  className="px-3 py-1.5 min-h-[44px] rounded-lg bg-stone-900 hover:bg-stone-800 text-white font-bold text-[11px] transition-colors cursor-pointer"
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
                   onClick={() => onNavigate(`/verify-email?email=${encodeURIComponent(email.trim().toLowerCase())}`)}
-                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-colors cursor-pointer"
+                  className="px-3 py-1.5 min-h-[44px] rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-colors cursor-pointer"
                 >
                   Resend Verification Email
                 </button>
@@ -179,66 +161,66 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
         {/* Full Name */}
         <div>
-          <label htmlFor="register-name" className="block text-xs font-bold text-stone-700 mb-1">
+          <label htmlFor={`register-name-${formSuffix}`} className="block text-xs font-bold text-stone-700 mb-1">
             Full Name
           </label>
           <div className="relative flex items-center">
             <User className="w-4 h-4 text-stone-400 absolute left-3.5 pointer-events-none" />
             <input
-              id="register-name"
+              id={`register-name-${formSuffix}`}
               type="text"
               autoComplete="name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="John Doe"
               disabled={isLoading}
-              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
+              className="w-full pl-10 pr-3.5 py-2.5 min-h-[44px] rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
             />
           </div>
         </div>
 
         {/* Email Address */}
         <div>
-          <label htmlFor="register-email" className="block text-xs font-bold text-stone-700 mb-1">
+          <label htmlFor={`register-email-${formSuffix}`} className="block text-xs font-bold text-stone-700 mb-1">
             Email Address
           </label>
           <div className="relative flex items-center">
             <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 pointer-events-none" />
             <input
-              id="register-email"
+              id={`register-email-${formSuffix}`}
               type="email"
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               disabled={isLoading}
-              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
+              className="w-full pl-10 pr-3.5 py-2.5 min-h-[44px] rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
             />
           </div>
         </div>
 
         {/* Password */}
         <div>
-          <label htmlFor="register-password" className="block text-xs font-bold text-stone-700 mb-1">
+          <label htmlFor={`register-password-${formSuffix}`} className="block text-xs font-bold text-stone-700 mb-1">
             Password
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 pointer-events-none" />
             <input
-              id="register-password"
+              id={`register-password-${formSuffix}`}
               type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Create a strong password"
               disabled={isLoading}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
+              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
             />
             <button
               type="button"
-              id="register-show-password"
+              id={`register-show-password-${formSuffix}`}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer p-1"
+              className="a11y-icon-button absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -261,7 +243,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 />
               ))}
             </div>
-            <span className="text-[10.5px] font-medium text-stone-400 shrink-0">
+            <span className="text-[10.5px] font-medium text-stone-600 shrink-0">
               Password strength
             </span>
           </div>
@@ -269,26 +251,26 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
         {/* Confirm Password */}
         <div>
-          <label htmlFor="register-confirm-password" className="block text-xs font-bold text-stone-700 mb-1">
+          <label htmlFor={`register-confirm-password-${formSuffix}`} className="block text-xs font-bold text-stone-700 mb-1">
             Confirm Password
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 pointer-events-none" />
             <input
-              id="register-confirm-password"
+              id={`register-confirm-password-${formSuffix}`}
               type={showConfirm ? 'text' : 'password'}
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
               disabled={isLoading}
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
+              className="w-full pl-10 pr-10 py-2.5 min-h-[44px] rounded-xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
             />
             <button
               type="button"
-              id="register-show-confirm"
+              id={`register-show-confirm-${formSuffix}`}
               onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-3 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer p-1"
+              className="a11y-icon-button absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
               aria-label={showConfirm ? 'Hide password' : 'Show password'}
             >
               {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -298,7 +280,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
         {/* Submit Button */}
         <button
-          id="register-submit"
+          id={`register-submit-${formSuffix}`}
           type="submit"
           disabled={isLoading}
           className="w-full py-3 px-5 bg-[#181C1A] hover:bg-black disabled:bg-stone-600 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 mt-2 cursor-pointer"
@@ -322,7 +304,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             <div className="w-full border-t border-stone-200" />
           </div>
           <div className="relative flex justify-center text-[10px]">
-            <span className="bg-[#FAF8F5] px-2.5 text-stone-400 font-bold tracking-wider uppercase">
+            <span className="bg-[#FAF8F5] px-2.5 text-stone-600 font-bold tracking-wider uppercase">
               or continue with
             </span>
           </div>
@@ -345,14 +327,15 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             type="button"
             role="checkbox"
             aria-checked={agreeTerms}
+            aria-labelledby={`register-terms-label-${formSuffix}`}
             onClick={() => setAgreeTerms(!agreeTerms)}
-            className={`w-4 h-4 mt-0.5 rounded flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+            className={`relative w-4 h-4 mt-0.5 rounded flex items-center justify-center transition-colors cursor-pointer shrink-0 before:absolute before:-inset-3.5 before:content-[''] ${
               agreeTerms ? 'bg-[#181C1A] text-white' : 'border border-stone-300 bg-white'
             }`}
           >
             {agreeTerms && <Check className="w-3 h-3 stroke-[3]" />}
           </button>
-          <span className="text-[11px] sm:text-xs text-stone-600 leading-tight">
+          <span id={`register-terms-label-${formSuffix}`} className="text-[11px] sm:text-xs text-stone-600 leading-tight">
             I agree to the{' '}
             <span className="underline hover:text-stone-900 cursor-pointer">Terms of Service</span> and{' '}
             <span className="underline hover:text-stone-900 cursor-pointer">Privacy Policy</span>
@@ -365,9 +348,9 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             Already have an account?{' '}
             <button
               type="button"
-              id="register-signin-link"
+              id={`register-signin-link-${formSuffix}`}
               onClick={() => onNavigate('/login')}
-              className="font-bold text-stone-900 hover:text-black underline underline-offset-2 transition-colors cursor-pointer"
+              className="a11y-tap font-bold text-stone-900 hover:text-black underline underline-offset-2 transition-colors cursor-pointer"
             >
               Sign in →
             </button>
@@ -375,11 +358,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
         </div>
       </form>
     </div>
-  );
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,#F3EFE7_0%,#E6E2D8_50%,#DDD8CD_100%)] font-sans selection:bg-[#BEF264] selection:text-black">
-      
+    <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,#F3EFE7_0%,#E6E2D8_50%,#DDD8CD_100%)] font-sans selection:bg-[#BEF264] selection:text-black">
+      <h1 className="sr-only">Create your Zugora account</h1>
+
       {/* ========================================================================= */}
       {/* MOBILE VIEW (< lg): Fit-to-Screen Single Page Experience (NO SCROLL)      */}
       {/* ========================================================================= */}
@@ -411,7 +396,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             <button
               type="button"
               onClick={() => onNavigate('/landing')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-xs text-stone-300 hover:text-white hover:bg-white/15 transition-all text-xs font-medium cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 min-h-[44px] rounded-full border border-white/20 bg-white/5 backdrop-blur-xs text-stone-300 hover:text-white hover:bg-white/15 transition-all text-xs font-medium cursor-pointer"
               title="Return to Landing Page"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -420,7 +405,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             <button
               type="button"
               onClick={() => onNavigate('/login')}
-              className="px-3.5 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-xs text-white hover:bg-white hover:text-black transition-all text-xs font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 min-h-[44px] rounded-full border border-white/30 bg-white/10 backdrop-blur-xs text-white hover:bg-white hover:text-black transition-all text-xs font-semibold cursor-pointer"
             >
               Sign in →
             </button>
@@ -483,7 +468,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => onNavigate('/landing')}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-stone-300 hover:text-white hover:bg-white/10 border border-white/15 backdrop-blur-xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 min-h-[44px] rounded-full text-xs font-semibold text-stone-300 hover:text-white hover:bg-white/10 border border-white/15 backdrop-blur-xs transition-all cursor-pointer"
                   title="Return to Landing Page"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -581,7 +566,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
                   type="button"
                   id="register-header-signin-btn"
                   onClick={() => onNavigate('/login')}
-                  className="px-4 py-1.5 rounded-full border border-stone-800 text-stone-900 hover:bg-stone-900 hover:text-white transition-all text-xs font-semibold cursor-pointer shadow-2xs"
+                  className="px-4 py-1.5 min-h-[44px] rounded-full border border-stone-800 text-stone-900 hover:bg-stone-900 hover:text-white transition-all text-xs font-semibold cursor-pointer shadow-2xs"
                 >
                   Sign in →
                 </button>
@@ -662,7 +647,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
                     <button
                       type="button"
-                      className="w-8 h-8 rounded-full border border-stone-300 bg-white flex items-center justify-center text-stone-700 hover:bg-stone-50 transition-all cursor-pointer shadow-xs"
+                      className="a11y-icon-button rounded-full border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 transition-all cursor-pointer shadow-xs"
                       aria-label="Next benefit"
                     >
                       <ArrowRight className="w-4 h-4" />
@@ -675,7 +660,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
               {/* Bottom Copyright */}
               <div className="text-[11px] text-stone-400 pt-4">
-                © {new Date().getFullYear()} Chess Coach AI. All rights reserved.
+                © {new Date().getFullYear()} Zugora. All rights reserved.
               </div>
 
             </div>
@@ -685,6 +670,6 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-    </div>
+    </main>
   );
 };

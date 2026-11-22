@@ -3,19 +3,6 @@ import { useAuth } from './AuthProvider';
 
 const dataMode = import.meta.env.VITE_DATA_MODE || 'api';
 
-/**
- * Validates that a redirect target is a safe internal path.
- * Prevents open redirect to external URLs.
- */
-function isSafeRedirect(path: string): boolean {
-  if (!path) return false;
-  // Must start with / but not // (protocol-relative) and not contain ://
-  if (!path.startsWith('/')) return false;
-  if (path.startsWith('//')) return false;
-  if (path.includes('://')) return false;
-  return true;
-}
-
 interface ProtectedRouteProps {
   children: React.ReactNode;
   currentRoute: string;
@@ -35,7 +22,6 @@ interface ProtectedRouteProps {
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  currentRoute,
   onNavigate
 }) => {
   const { user, isLoading } = useAuth();

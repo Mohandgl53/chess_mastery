@@ -333,7 +333,7 @@ describe('Security Audit & Hardening Verification Suite', () => {
       expect(demoteRes.body.error.code).toBe('CANNOT_DEMOTE_SELF');
     });
 
-    it('public profile GET /api/users/:userId does NOT leak email to other users', async () => {
+    it('profile GET /api/users/:userId does NOT leak email to other users', async () => {
       const res = await request(app)
         .get(`/api/users/${otherUserId}`)
         .set('Authorization', `Bearer ${userAccessToken}`);
@@ -341,6 +341,23 @@ describe('Security Audit & Hardening Verification Suite', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.id).toBe(otherUserId);
       expect(res.body.data.email).toBeUndefined(); // PII protected!
+    });
+
+    it('profile GET /api/users/:userId requires authentication', async () => {
+      const res = await request(app).get(`/api/users/${otherUserId}`);
+      expect(res.status).toBe(401);
+      expect(res.body).not.toHaveProperty('data');
+      expect(JSON.stringify(res.body)).not.toContain(otherUserEmail);
+    });
+
+    it('profile GET /api/users/:userId returns email to the profile owner', async () => {
+      const res = await request(app)
+        .get(`/api/users/${testUserId}`)
+        .set('Authorization', `Bearer ${userAccessToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.id).toBe(testUserId);
+      expect(res.body.data.email).toBe(testUserEmail);
     });
   });
 

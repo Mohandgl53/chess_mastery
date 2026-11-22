@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Chess, Move, Square } from 'chess.js';
 import { ChessSquare } from './ChessSquare';
 import { PromotionModal } from './PromotionModal';
-import { BoardOrientation, PieceColor, PieceType, SquareName } from '../../types/chess';
-import { sounds } from '../../utils/soundEffects';
+import { BoardOrientation, PieceType, SquareName } from '../../types/chess';
+import { useSettings } from '../../context/SettingsContext';
+import { isLegalPawnPromotion } from '../../utils/gameRules';
 
 interface ChessBoardProps {
   chess: Chess;
@@ -24,6 +25,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   onMovePiece,
   className = ''
 }) => {
+  const { settings } = useSettings();
   const [selectedSquare, setSelectedSquare] = useState<SquareName | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: SquareName; to: SquareName } | null>(null);
 
@@ -75,15 +77,11 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   }, [chess]);
 
   // Execute move helper
-  const tryExecuteMove = (from: SquareName, to: SquareName, promotion?: PieceType) => {
+  const tryExecuteMove = async (from: SquareName, to: SquareName, promotion?: PieceType) => {
     if (!isInteractive) return;
 
-    // Check if move is pawn promotion
-    const piece = chess.get(from as Square);
-    const isPawnPromotion =
-      piece &&
-      piece.type === 'p' &&
-      ((piece.color === 'w' && to.endsWith('8')) || (piece.color === 'b' && to.endsWith('1')));
+    // Only open the promotion modal for a genuinely legal promotion move.
+    const isPawnPromotion = isLegalPawnPromotion(chess, from as Square, to as Square);
 
     if (isPawnPromotion && !promotion) {
       setPendingPromotion({ from, to });
@@ -91,7 +89,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
     }
 
     try {
-      onMovePiece({ from, to, promotion });
+      await onMovePiece({ from, to, promotion });
       setSelectedSquare(null);
     } catch (err) {
       console.error('Invalid move attempt', err);
@@ -177,7 +175,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
 
             const isSelected = selectedSquare === square;
             const legalMove = legalTargetsMap.get(square);
-            const isLegalTarget = Boolean(legalMove);
+            const isLegalTarget = Boolean(legalMove) && settings.showLegalDots;
             const isCaptureTarget = isLegalTarget && (Boolean(piece) || legalMove?.flags.includes('e') || false);
 
             const isLastMoveFrom = lastMove?.from === square;
@@ -186,8 +184,8 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
             const isHighlightedByCoach = highlightedSquares.includes(square);
 
             // Coordinates on edges
-            const showRank = fileIndex === 0 ? rank : undefined;
-            const showFile = rankIndex === 7 ? file : undefined;
+            const showRank = settings.showCoordinates && fileIndex === 0 ? rank : undefined;
+            const showFile = settings.showCoordinates && rankIndex === 7 ? file : undefined;
 
             return (
               <ChessSquare

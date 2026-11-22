@@ -26,7 +26,6 @@ interface CoachPanelProps {
 
 export const CoachPanel: React.FC<CoachPanelProps> = ({
   currentMessage,
-  messageHistory,
   coachMode,
   onChangeCoachMode,
   presetPrompts,

@@ -21,6 +21,7 @@ import { ChessMasteryLogo } from '../brand/ChessMasteryLogo';
 import { PlayerProfile } from '../../types/user';
 import { useAuth } from '../../auth/AuthProvider';
 import { useTheme } from '../../context/ThemeContext';
+import { useSettings } from '../../context/SettingsContext';
 import { sounds } from '../../utils/soundEffects';
 
 interface SidebarProps {
@@ -38,13 +39,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [soundEnabled, setSoundEnabled] = React.useState(true);
+  const { settings, saveSettings } = useSettings();
+  const soundEnabled = settings.soundEnabled;
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const toggleSound = () => {
     const next = !soundEnabled;
-    setSoundEnabled(next);
-    sounds.setSoundEnabled(next);
+    saveSettings({ ...settings, soundEnabled: next });
     if (next) sounds.playMove();
   };
 
@@ -109,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Desktop Collapse / Expand Toggle Button */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1F2533] transition-colors cursor-pointer"
+            className="a11y-icon-button hidden lg:flex rounded-lg text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#1F2533] transition-colors cursor-pointer"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
@@ -128,11 +129,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={item.id}
                 onClick={() => onNavigate(item.route)}
                 title={item.label}
-                className={`w-full flex items-center ${
+                className={`a11y-tab w-full flex items-center ${
                   isCollapsed ? 'justify-center' : 'justify-center lg:justify-between'
                 } px-2.5 lg:px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   active
-                    ? 'bg-[#81B64C]/15 text-[#588329] dark:bg-[#81B64C]/20 dark:text-[#9DD362] border-l-4 border-[#81B64C] shadow-xs'
+                    ? 'bg-[#81B64C]/15 text-[#3F6B1B] dark:bg-[#81B64C]/20 dark:text-[#9DD362] border-l-4 border-[#81B64C] shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#1D222E]'
                 }`}
               >
@@ -168,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Theme Toggle Button */}
           <button
             onClick={toggleTheme}
-            className={`w-full ${isCollapsed ? '' : 'lg:w-auto'} flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#242C3D] transition-colors cursor-pointer`}
+            className={`a11y-tab w-full ${isCollapsed ? '' : 'lg:w-auto'} flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#242C3D] transition-colors cursor-pointer`}
             title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} theme`}
           >
             {theme === 'light' ? (
@@ -187,7 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Sound Toggle Button */}
           <button
             onClick={toggleSound}
-            className={`w-full ${isCollapsed ? '' : 'lg:w-auto'} flex items-center justify-center p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#242C3D] transition-colors cursor-pointer`}
+            className={`a11y-icon-button w-full ${isCollapsed ? '' : 'lg:w-auto'} flex items-center justify-center rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#242C3D] transition-colors cursor-pointer`}
             title={soundEnabled ? 'Mute audio' : 'Enable audio'}
           >
             {soundEnabled ? (
@@ -207,7 +208,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               key={item.id}
               onClick={() => onNavigate(item.route)}
               title={item.label}
-              className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-center lg:justify-start'} gap-3 px-2.5 lg:px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+              className={`a11y-tab w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-center lg:justify-start'} gap-3 px-2.5 lg:px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                 active
                   ? 'bg-[#81B64C]/15 text-[#588329] dark:bg-[#81B64C]/20 dark:text-[#9DD362] font-bold border-l-3 border-[#81B64C]'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-[#1D222E]'
@@ -224,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           id="sidebar-user-profile"
           onClick={() => onNavigate('/profile')}
           title={`${userProfile.name} (Elo ${userProfile.rating})`}
-          className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-center lg:justify-between'} p-2 lg:p-2.5 rounded-xl cursor-pointer transition-all border ${
+          className={`a11y-tab flex items-center ${isCollapsed ? 'justify-center' : 'justify-center lg:justify-between'} p-2 lg:p-2.5 rounded-xl cursor-pointer transition-all border ${
             currentRoute === '/profile'
               ? 'bg-[#81B64C]/15 border-[#81B64C] shadow-sm'
               : 'bg-white dark:bg-[#1A1F2B] border-slate-200 dark:border-[#273042] hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs'
@@ -267,7 +268,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           id="sidebar-logout"
           onClick={handleLogout}
           title="Sign out"
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-center lg:justify-start'} gap-3 px-2 lg:px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer`}
+          className={`a11y-tab w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-center lg:justify-start'} gap-3 px-2 lg:px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer`}
         >
           <LogOut className="w-4 h-4 lg:w-3.5 lg:h-3.5 shrink-0" />
           {!isCollapsed && <span className="hidden lg:inline">Sign out</span>}

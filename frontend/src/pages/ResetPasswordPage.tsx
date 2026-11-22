@@ -47,7 +47,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0F141C] text-white">
+    <main className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0F141C] text-white">
       <div className="w-full max-w-md bg-[#161D28] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-center">
@@ -67,7 +67,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
             </div>
             <button
               onClick={() => onNavigate('/login')}
-              className="w-full py-3 rounded-xl bg-[#81B64C] hover:bg-[#689E39] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+              className="w-full py-3 rounded-xl bg-[#047857] hover:bg-[#065F46] text-white min-h-[44px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
             >
               <span>Sign In with New Password</span>
               <ArrowRight className="w-4 h-4" />
@@ -90,24 +90,28 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
             )}
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              <label htmlFor="reset-password" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 New Password
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="reset-password"
+                  name="password"
+                  autoComplete="new-password"
                   type={showPassword ? 'text' : 'password'}
                   required
                   minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
+                  className="w-full pl-10 pr-10 py-2.5 min-h-[44px] rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-2.5 text-slate-400 hover:text-white"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="a11y-icon-button absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -115,19 +119,22 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+              <label htmlFor="reset-confirm-password" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Confirm New Password
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
+                  id="reset-confirm-password"
+                  name="confirmPassword"
+                  autoComplete="new-password"
                   type={showPassword ? 'text' : 'password'}
                   required
                   minLength={8}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Repeat your new password"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
+                  className="w-full pl-10 pr-4 py-2.5 min-h-[44px] rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-[#81B64C]"
                 />
               </div>
             </div>
@@ -135,7 +142,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 rounded-xl bg-[#81B64C] hover:bg-[#689E39] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md mt-4"
+              className="w-full py-3 rounded-xl bg-[#047857] hover:bg-[#065F46] text-white min-h-[44px] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md mt-4"
             >
               {isLoading ? 'Updating Password...' : 'Save New Password'}
             </button>
@@ -144,7 +151,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
               <button
                 type="button"
                 onClick={() => onNavigate('/login')}
-                className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                className="min-h-[44px] px-2 text-xs text-slate-400 hover:text-white underline cursor-pointer"
               >
                 Back to Sign In
               </button>
@@ -152,7 +159,7 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({ onNavigate
           </form>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

@@ -45,6 +45,9 @@ export const CoachChatInput: React.FC<CoachChatInputProps> = ({
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="relative flex items-center">
         <input
+          id="coach-chat-input"
+          name="message"
+          aria-label="Ask the coach a question"
           type="text"
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}

@@ -197,11 +197,17 @@ export function savePlayerProfile(profile: PlayerProfile, userId?: string): void
 }
 
 /**
- * Calculate dynamic Elo change after a match
+ * Local mirror of the backend rating formula. The server database is the
+ * single source of truth; this function only keeps the UI responsive between
+ * the game ending and the save request completing. It must stay identical to
+ * backend/src/services/player-stats.service.ts (K=16, floor 100).
+ *
+ * `opponentRating` is kept in the signature for call-site compatibility but
+ * intentionally unused: the backend records opponent names, not ratings.
  */
 export function calculateMatchRating(
   currentRating: number,
-  botRating: number,
+  _opponentRating: number,
   result: 'WHITE_WINS' | 'BLACK_WINS' | 'DRAW',
   playerColor: 'w' | 'b'
 ): { delta: number; newRating: number; matchResult: 'WIN' | 'LOSS' | 'DRAW' } {
@@ -209,32 +215,10 @@ export function calculateMatchRating(
   const isDraw = result === 'DRAW';
   const matchResult: 'WIN' | 'LOSS' | 'DRAW' = isWin ? 'WIN' : isDraw ? 'DRAW' : 'LOSS';
 
-  // Standard Elo formula with K-factor = 32 for dynamic rating progression
-  const K = 32;
-  const expectedScore = 1 / (1 + Math.pow(10, (botRating - currentRating) / 400));
-  const actualScore = isWin ? 1.0 : isDraw ? 0.5 : 0.0;
+  const K = 16;
+  const deltaByResult = matchResult === 'WIN' ? K : matchResult === 'LOSS' ? -K : 0;
+  const newRating = Math.max(100, currentRating + deltaByResult);
 
-  let delta = Math.round(K * (actualScore - expectedScore));
-
-  // Intuitive floors & ceilings so victories always feel rewarding
-  if (isWin) {
-    delta = Math.max(delta, 12);
-  } else if (isDraw) {
-    if (botRating > currentRating) {
-      delta = Math.max(4, Math.round((botRating - currentRating) / 50));
-    } else {
-      delta = 0;
-    }
-  } else {
-    if (botRating > currentRating + 300) {
-      delta = Math.min(-4, Math.max(-12, delta));
-    } else {
-      delta = Math.min(delta, -8);
-    }
-  }
-
-  // Never drop below 100 rating
-  const newRating = Math.max(100, currentRating + delta);
   return { delta: newRating - currentRating, newRating, matchResult };
 }
 

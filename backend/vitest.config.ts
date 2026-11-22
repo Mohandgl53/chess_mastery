@@ -8,7 +8,8 @@ export default defineConfig({
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres@localhost:5432/chess_coach?schema=public',
       EMBEDDING_PROVIDER: 'mock',
       LLM_PROVIDER: 'mock',
-      NODE_ENV: 'test'
+      NODE_ENV: 'test',
+      REQUIRE_EMAIL_VERIFICATION: 'false'
     }
   }
 });

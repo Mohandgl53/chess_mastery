@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Chess, Square } from 'chess.js';
-import { Puzzle, PuzzleTheme } from '../types/puzzle';
+import { Puzzle } from '../types/puzzle';
 import { puzzleService } from '../services/puzzleService';
 import { ChessBoard } from '../components/chess/ChessBoard';
 import { sounds } from '../utils/soundEffects';
@@ -20,16 +20,13 @@ import {
   Filter,
   Clock,
   Star,
-  BookOpen,
   Swords,
   Timer,
   Heart,
   Globe,
   ExternalLink,
   Layers,
-  ChevronRight,
-  RotateCcw,
-  Play
+  RotateCcw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -109,6 +106,24 @@ const THEME_META: Record<string, ThemeMeta> = {
     color: 'text-emerald-500',
     description: 'Spot and punish completely undefended enemy pieces'
   },
+  'Late Castling': {
+    label: 'Late Castling',
+    icon: <Trophy className="w-3.5 h-3.5" />,
+    color: 'text-indigo-500',
+    description: 'Castle in time and punish an exposed, uncastled king'
+  },
+  'Center Control': {
+    label: 'Center Control',
+    icon: <Target className="w-3.5 h-3.5" />,
+    color: 'text-emerald-500',
+    description: 'Fight for the center and build a dominant pawn structure'
+  },
+  'Open File': {
+    label: 'Open File',
+    icon: <Swords className="w-3.5 h-3.5" />,
+    color: 'text-rose-500',
+    description: 'Infiltrate along open files with rooks and heavy pieces'
+  },
   'Greek Gift': {
     label: 'Greek Gift',
     icon: <Flame className="w-3.5 h-3.5" />,
@@ -142,7 +157,7 @@ export interface PuzzlesPageProps {
   onNavigate?: (route: string) => void;
 }
 
-export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
+export const PuzzlesPage: React.FC<PuzzlesPageProps> = () => {
   // Navigation & Mode
   const [activeTab, setActiveTab] = useState<ActivePuzzleTab>('rated');
   const [selectedTheme, setSelectedTheme] = useState<string>('All');
@@ -174,7 +189,8 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
     bestStreak: 0,
     totalTimeMs: 0
   });
-  const puzzleStartTime = useRef<number>(Date.now());
+  // Reset to Date.now() whenever a puzzle loads; no need to read a clock during render.
+  const puzzleStartTime = useRef<number>(0);
 
   // ─── Puzzle Rush State ──────────────────────────────────────────────────────
   const [rushFormat, setRushFormat] = useState<RushFormat>('3min');
@@ -184,19 +200,9 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
   const [rushStrikes, setRushStrikes] = useState(0);
   const [rushSecondsLeft, setRushSecondsLeft] = useState(180);
   const [rushHighScore, setRushHighScore] = useState<number>(() => puzzleService.getPuzzleRushHighScore());
+  const endPuzzleRushRef = useRef<() => void>(() => {});
   const [rushQueue, setRushQueue] = useState<Puzzle[]>([]);
   const [rushIndex, setRushIndex] = useState(0);
-
-  // ─── Initial Load ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    puzzleService.getPuzzles().then((puzzles) => {
-      setAllPuzzles(puzzles);
-      if (puzzles.length > 0) {
-        loadPuzzle(puzzles[0]);
-      }
-      setLoading(false);
-    });
-  }, []);
 
   // Update board re-render
   const updateBoard = useCallback(() => {
@@ -225,6 +231,24 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
     },
     [chess, updateBoard]
   );
+
+  // ─── Initial Load ───────────────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    puzzleService.getPuzzles()
+      .then((puzzles) => {
+        if (cancelled) return;
+        setAllPuzzles(puzzles);
+        if (puzzles.length > 0) loadPuzzle(puzzles[0]);
+      })
+      .catch(() => {
+        if (!cancelled) setFeedback('Using offline puzzles — the library is temporarily unavailable.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [loadPuzzle]);
 
   // ─── Filtered Puzzles List ──────────────────────────────────────────────────
   const filteredPuzzles = selectedTheme === 'All'
@@ -500,7 +524,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
     loadPuzzle(rushQueue[nextIdx]);
   };
 
-  const endPuzzleRush = () => {
+  const endPuzzleRush = useCallback(() => {
     setIsRushActive(false);
     setIsRushOver(true);
     if (rushScore > rushHighScore) {
@@ -508,7 +532,13 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
       puzzleService.savePuzzleRushHighScore(rushScore);
       confetti({ particleCount: 80, spread: 80, origin: { y: 0.5 } });
     }
-  };
+  }, [rushScore, rushHighScore]);
+
+  // The countdown effect must always call the latest closure, otherwise a
+  // timeout would compare against the score from when the timer started.
+  useEffect(() => {
+    endPuzzleRushRef.current = endPuzzleRush;
+  }, [endPuzzleRush]);
 
   // Timer countdown for Puzzle Rush
   useEffect(() => {
@@ -517,7 +547,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
       setRushSecondsLeft((sec) => {
         if (sec <= 1) {
           clearInterval(interval);
-          endPuzzleRush();
+          endPuzzleRushRef.current();
           return 0;
         }
         return sec - 1;
@@ -579,7 +609,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
               <Zap className="w-3.5 h-3.5 text-emerald-400" />
               Tactical Vision Trainer
             </span>
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
               Chess.com & Lichess Open Databases
             </span>
           </div>
@@ -629,7 +659,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
         {[
           { id: 'rated', label: 'Rated Tactics', icon: Target, desc: 'Dynamic Elo Trainer' },
           { id: 'rush', label: 'Puzzle Rush', icon: Flame, desc: 'Speed & Strikes' },
-          { id: 'themes', label: 'Themed Practice', icon: Filter, desc: '14 Motifs' },
+          { id: 'themes', label: 'Themed Practice', icon: Filter, desc: `${Object.keys(THEME_META).length - 1} Motifs` },
           { id: 'portal', label: "World's 4M+ Puzzles", icon: Globe, desc: 'Open Databases' }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -641,10 +671,10 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
                 if (isRushActive) return;
                 setActiveTab(tab.id as ActivePuzzleTab);
               }}
-              className={`pb-3 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              className={`a11y-tab pb-3 px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                 isActive
-                  ? 'border-[#81B64C] text-[#81B64C] dark:text-emerald-400'
-                  : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                  ? 'border-[#3F6B1B] text-[#3F6B1B] dark:text-emerald-400'
+                  : 'border-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -676,7 +706,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
                 </span>
               )}
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-zinc-500">Live Elo rating</p>
+            <p className="text-[10px] text-slate-600 dark:text-zinc-400">Live Elo rating</p>
           </div>
 
           {/* Solved Today */}
@@ -686,9 +716,9 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
               <Trophy className="w-4 h-4 text-amber-500" />
             </div>
             <div className="text-xl font-black text-slate-900 dark:text-white tabular-nums">
-              {session.solved} <span className="text-xs text-slate-400 font-normal">/ {session.attempted}</span>
+              {session.solved} <span className="text-xs text-slate-600 dark:text-slate-400 font-normal">/ {session.attempted}</span>
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-zinc-500">{sessionAccuracy}% accuracy</p>
+            <p className="text-[10px] text-slate-600 dark:text-zinc-400">{sessionAccuracy}% accuracy</p>
           </div>
 
           {/* Current Streak */}
@@ -700,7 +730,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
             <div className="text-xl font-black text-rose-600 dark:text-rose-400 tabular-nums">
               {session.streak} 🔥
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-zinc-500">Best: {session.bestStreak}</p>
+            <p className="text-[10px] text-slate-600 dark:text-zinc-400">Best: {session.bestStreak}</p>
           </div>
 
           {/* Rush High Score */}
@@ -712,7 +742,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
             <div className="text-xl font-black text-purple-600 dark:text-purple-400 tabular-nums">
               {rushHighScore}
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-zinc-500">All-time best score</p>
+            <p className="text-[10px] text-slate-600 dark:text-zinc-400">All-time best score</p>
           </div>
         </div>
       ) : (
@@ -723,14 +753,14 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
               {rushScore}
             </div>
             <div>
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Puzzle Rush Score</p>
+              <p className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-bold tracking-wider">Puzzle Rush Score</p>
               <p className="text-sm font-black text-white">Puzzle #{rushIndex + 1} ({currentPuzzle.rating} Elo)</p>
             </div>
           </div>
 
           {/* Strikes (3 Lives) */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 font-bold mr-1">Strikes:</span>
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-bold mr-1">Strikes:</span>
             {[0, 1, 2].map((strikeIdx) => (
               <span key={strikeIdx} className="text-lg">
                 {strikeIdx < rushStrikes ? '❌' : '❤️'}
@@ -787,7 +817,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
                     <span className="font-black text-sm text-slate-900 dark:text-white group-hover:text-emerald-500">
                       {f.label}
                     </span>
-                    <Icon className="w-4 h-4 text-slate-400 group-hover:text-emerald-500" />
+                    <Icon className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-400" />
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-zinc-400">{f.desc}</p>
                 </button>
@@ -802,7 +832,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
             <Filter className="w-3.5 h-3.5" />
-            Filter by Tactical Motif (14 Categories)
+            Filter by Tactical Motif ({Object.keys(THEME_META).length - 1} Categories)
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1.5 no-scrollbar">
             {allThemesList.map((themeKey) => {
@@ -812,9 +842,9 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
                 <button
                   key={themeKey}
                   onClick={() => setSelectedTheme(themeKey)}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all whitespace-nowrap cursor-pointer shadow-xs ${
+                  className={`a11y-tab shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all whitespace-nowrap cursor-pointer shadow-xs ${
                     isActive
-                      ? 'bg-[#81B64C] text-white border-[#81B64C]'
+                      ? 'bg-[#047857] text-white border-[#047857]'
                       : 'bg-white dark:bg-[#181D26] text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-[#262F3E] hover:bg-slate-100 dark:hover:bg-[#202735]'
                   }`}
                 >
@@ -993,7 +1023,7 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
                   href={currentPuzzle.externalUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-slate-400 hover:text-emerald-500 transition-colors p-1"
+                  className="a11y-icon-button text-slate-600 hover:text-emerald-700 dark:text-slate-400 dark:hover:text-emerald-400 transition-colors"
                   title="View original on web"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -1129,11 +1159,11 @@ export const PuzzlesPage: React.FC<PuzzlesPageProps> = ({ onNavigate }) => {
 
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#12151B] border border-slate-200 dark:border-[#262F3E] grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] text-slate-400 uppercase font-bold">Your Score</p>
+                <p className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-bold">Your Score</p>
                 <p className="text-2xl font-black text-emerald-500 tabular-nums">{rushScore}</p>
               </div>
               <div>
-                <p className="text-[10px] text-slate-400 uppercase font-bold">High Score</p>
+                <p className="text-[10px] text-slate-600 dark:text-slate-400 uppercase font-bold">High Score</p>
                 <p className="text-2xl font-black text-purple-500 tabular-nums">{rushHighScore}</p>
               </div>
             </div>

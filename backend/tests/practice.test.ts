@@ -176,6 +176,17 @@ describe('Phase 7: Adaptive Practice, Theme Mastery & Personalized Training Test
       expect(Array.isArray(res.body.attempts)).toBe(true);
     });
 
+    it('GET /api/practice/sessions/:id rejects another user with 403 (IDOR protection)', async () => {
+      const res = await request(app)
+        .get(`/api/practice/sessions/${testSessionId}`)
+        .set('Cookie', otherCookie);
+
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe('FORBIDDEN');
+      expect(res.body).not.toHaveProperty('attempts');
+      expect(otherUserId).not.toBe(userId);
+    });
+
     it('POST /api/practice/sessions/:id/attempts records correct attempt, updates mastery, and creates learning evidence', async () => {
       const puzzle = await prisma.puzzle.findFirst({ where: { theme: 'FORK', id: 'puz-fork-101' } });
       expect(puzzle).toBeDefined();

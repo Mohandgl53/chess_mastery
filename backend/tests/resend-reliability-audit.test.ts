@@ -313,6 +313,12 @@ describe('Resend Email Delivery & Registration Recovery Reliability Audit', () =
       .post('/api/auth/register')
       .send({ email, displayName: 'PW Fail Player', password: testPassword });
 
+    // Mark account verified so that password authentication can be verified independently of email verification status
+    await prisma.user.update({
+      where: { email },
+      data: { emailVerified: true }
+    });
+
     // Simulate Resend delivery failure on password reset
     vi.spyOn(emailService, 'sendPasswordResetEmail').mockResolvedValueOnce({
       success: false,

@@ -1,4 +1,4 @@
-import { PieceColor, MoveRecord, CapturedPiecesState, EvaluationData } from './chess';
+import { PieceColor, MoveRecord } from './chess';
 export type { PieceColor };
 
 export type GameDifficulty = 'Beginner' | 'Easy' | 'Intermediate' | 'Advanced' | 'Expert' | 'Equal';

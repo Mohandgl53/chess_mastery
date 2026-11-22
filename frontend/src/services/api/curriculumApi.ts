@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { CurriculumModule, Lesson, LessonStep } from '../../types/learning';
+import { CurriculumModule, Lesson } from '../../types/learning';
 
 export interface CurriculumStats {
   totalLessons: number;

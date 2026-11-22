@@ -65,6 +65,7 @@ export class UserRepository {
       gamesWon?: number;
       gamesDrawn?: number;
       gamesLost?: number;
+      avatarUrl?: string | null;
     }
   ): Promise<User & { profile: PlayerProfile }> {
     return prisma.$transaction(async (tx) => {
@@ -86,6 +87,7 @@ export class UserRepository {
           gamesWon: profileData?.gamesWon ?? 0,
           gamesDrawn: profileData?.gamesDrawn ?? 0,
           gamesLost: profileData?.gamesLost ?? 0,
+          avatarUrl: profileData?.avatarUrl ?? null,
           currentStreak: 0,
           longestStreak: 0
         }

@@ -1,4 +1,5 @@
 import { prisma } from '../config/database.js';
+import { playerStatsService } from '../services/player-stats.service.js';
 import {
   Game,
   GameMove,
@@ -78,6 +79,19 @@ export class GameRepository {
     });
   }
 
+  /** Look up an already-saved game by the client-supplied idempotency key. */
+  async findByIdempotencyKey(userId: string, idempotencyKey: string): Promise<FullGameWithDetails | null> {
+    return prisma.game.findFirst({
+      where: { userId, idempotencyKey },
+      include: {
+        moves: {
+          orderBy: { ply: 'asc' }
+        },
+        analysis: true
+      }
+    });
+  }
+
   async createTransactional(
     userId: string,
     input: CreateGameInput,
@@ -85,10 +99,14 @@ export class GameRepository {
     verifiedPgn?: string
   ): Promise<FullGameWithDetails> {
     return prisma.$transaction(async (tx) => {
+      // 0. Serialize stat recalculation for this user before touching any rows.
+      await playerStatsService.lockProfileForUser(userId, tx);
+
       // 1. Create Game record
       const game = await tx.game.create({
         data: {
           userId,
+          idempotencyKey: input.idempotencyKey,
           opponentName: input.opponentName,
           opponentType: input.opponentType,
           playerColor: input.playerColor,
@@ -141,38 +159,8 @@ export class GameRepository {
         });
       }
 
-      // 4. Update PlayerProfile statistics and dynamic rating
-      const profile = await tx.playerProfile.findUnique({ where: { userId } });
-      if (profile && input.result) {
-        const isWin = input.result === GameResult.WIN;
-        const isLoss = input.result === GameResult.LOSS;
-        const isDraw = input.result === GameResult.DRAW;
-
-        // Rating delta based on standard provisional Elo adjustment (+/- 16)
-        let ratingDelta = 0;
-        if (isWin) {
-          ratingDelta = 16;
-        } else if (isLoss) {
-          ratingDelta = -16;
-        }
-
-        const newRating = Math.max(100, profile.rating + ratingDelta);
-        const newStreak = isWin ? profile.currentStreak + 1 : 0;
-        const newLongestStreak = Math.max(profile.longestStreak, newStreak);
-
-        await tx.playerProfile.update({
-          where: { id: profile.id },
-          data: {
-            rating: newRating,
-            gamesPlayed: { increment: 1 },
-            ...(isWin ? { gamesWon: { increment: 1 } } : {}),
-            ...(isLoss ? { gamesLost: { increment: 1 } } : {}),
-            ...(isDraw ? { gamesDrawn: { increment: 1 } } : {}),
-            currentStreak: newStreak,
-            longestStreak: newLongestStreak
-          }
-        });
-      }
+      // 4. Rebuild PlayerProfile statistics/rating from the authoritative game rows.
+      await playerStatsService.recalculateForUser(userId, tx);
 
       // Fetch created moves ordered by ply
       const moves = await tx.gameMove.findMany({
@@ -189,21 +177,39 @@ export class GameRepository {
   }
 
   async update(gameId: string, input: UpdateGameInput): Promise<Game> {
-    return prisma.game.update({
-      where: { id: gameId },
-      data: {
-        ...(input.status ? { status: input.status } : {}),
-        ...(input.result ? { result: input.result } : {}),
-        ...(input.finalFen ? { finalFen: input.finalFen } : {}),
-        ...(input.pgn ? { pgn: input.pgn } : {}),
-        ...(input.endedAt ? { endedAt: input.endedAt } : {})
-      }
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.game.findUniqueOrThrow({ where: { id: gameId } });
+      await playerStatsService.lockProfileForUser(existing.userId, tx);
+
+      const updated = await tx.game.update({
+        where: { id: gameId },
+        data: {
+          ...(input.status !== undefined ? { status: input.status } : {}),
+          ...(input.result !== undefined ? { result: input.result } : {}),
+          ...(input.finalFen !== undefined ? { finalFen: input.finalFen } : {}),
+          ...(input.pgn !== undefined ? { pgn: input.pgn } : {}),
+          ...(input.endedAt !== undefined ? { endedAt: input.endedAt } : {})
+        }
+      });
+
+      await playerStatsService.recalculateForUser(existing.userId, tx);
+
+      return updated;
     });
   }
 
   async delete(gameId: string): Promise<Game> {
-    return prisma.game.delete({
-      where: { id: gameId }
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.game.findUniqueOrThrow({ where: { id: gameId } });
+      await playerStatsService.lockProfileForUser(existing.userId, tx);
+
+      const deleted = await tx.game.delete({
+        where: { id: gameId }
+      });
+
+      await playerStatsService.recalculateForUser(existing.userId, tx);
+
+      return deleted;
     });
   }
 }

@@ -90,7 +90,11 @@ export class AuthService {
       role: user.role
     };
 
-    const isVerificationEnforced = env.REQUIRE_EMAIL_VERIFICATION || process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+    const isVerificationEnforced = process.env.NODE_ENV === 'production'
+      ? true
+      : (process.env.REQUIRE_EMAIL_VERIFICATION !== undefined
+        ? process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
+        : env.REQUIRE_EMAIL_VERIFICATION);
 
     let rawToken: string | undefined = undefined;
     let tokens: { accessToken: string; refreshToken: string; expiresIn: string } | undefined = undefined;
@@ -121,9 +125,10 @@ export class AuthService {
     });
 
     // Send verification email via Resend
-    emailService.sendVerificationEmail(user.email, user.displayName, rawVerificationToken).catch((err) => {
-      console.warn('[AuthService] Could not send verification email:', err?.message || err);
-    });
+    const emailResult = await emailService.sendVerificationEmail(user.email, user.displayName, rawVerificationToken);
+    if (!emailResult.success) {
+      console.warn(`[AuthService] Verification email delivery reported an issue for registered user: ${emailService.sanitizeLogMessage(emailResult.error || '')}`);
+    }
 
     return {
       safeResponse: {
@@ -157,7 +162,11 @@ export class AuthService {
       throw genericError;
     }
 
-    const isVerificationEnforced = env.REQUIRE_EMAIL_VERIFICATION || process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+    const isVerificationEnforced = process.env.NODE_ENV === 'production'
+      ? true
+      : (process.env.REQUIRE_EMAIL_VERIFICATION !== undefined
+        ? process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
+        : env.REQUIRE_EMAIL_VERIFICATION);
     if (isVerificationEnforced && !user.emailVerified && !user.googleId) {
       throw new ForbiddenError(
         'Your email address has not been verified yet. Please check your inbox or request a new verification email.',
@@ -230,13 +239,18 @@ export class AuthService {
 
     // 3. If user doesn't exist at all, create new user + profile
     if (!user) {
-      const created = await userRepository.createWithProfile({
-        email: googleUser.email,
-        displayName: googleUser.displayName,
-        googleId: googleUser.googleId,
-        passwordHash: null,
-        emailVerified: true
-      });
+      const created = await userRepository.createWithProfile(
+        {
+          email: googleUser.email,
+          displayName: googleUser.displayName,
+          googleId: googleUser.googleId,
+          passwordHash: null,
+          emailVerified: true
+        },
+        {
+          avatarUrl: googleUser.avatarUrl || null
+        }
+      );
       user = created;
       profile = created.profile;
     } else {
@@ -244,6 +258,16 @@ export class AuthService {
         user = await userRepository.setEmailVerified(user.id, true);
       }
       profile = await userRepository.findProfileByUserId(user.id);
+      if (googleUser.avatarUrl && (!profile || !profile.avatarUrl)) {
+        try {
+          profile = await prisma.playerProfile.update({
+            where: { userId: user.id },
+            data: { avatarUrl: googleUser.avatarUrl }
+          });
+        } catch {
+          // Non-critical if profile update fails
+        }
+      }
     }
 
     const authUser: AuthenticatedUser = {
@@ -322,9 +346,10 @@ export class AuthService {
     });
 
     // Send password reset email via Resend
-    emailService.sendPasswordResetEmail(user.email, user.displayName, rawToken).catch((err) => {
-      console.warn('[AuthService] Could not send password reset email:', err?.message || err);
-    });
+    const emailResult = await emailService.sendPasswordResetEmail(user.email, user.displayName, rawToken);
+    if (!emailResult.success) {
+      console.warn(`[AuthService] Password reset email delivery reported an issue: ${emailService.sanitizeLogMessage(emailResult.error || '')}`);
+    }
 
     // In development / test mode, we expose the token to allow test assertions.
     return {
@@ -350,27 +375,39 @@ export class AuthService {
 
     const newPasswordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
 
-    await prisma.$transaction([
-      // 1. Update user password
-      prisma.user.update({
-        where: { id: resetRecord.userId },
-        data: { passwordHash: newPasswordHash }
-      }),
-      // 2. Mark reset token as used
-      prisma.passwordResetToken.update({
-        where: { id: resetRecord.id },
+    await prisma.$transaction(async (tx) => {
+      // Atomically claim the single-use token. Concurrent requests race here:
+      // only the one that flips used=false -> true may change the password.
+      const claimed = await tx.passwordResetToken.updateMany({
+        where: {
+          id: resetRecord.id,
+          used: false,
+          expiresAt: { gt: new Date() }
+        },
         data: { used: true }
-      }),
-      // 3. Invalidate all sessions across all devices for this user
-      prisma.session.deleteMany({
+      });
+
+      if (claimed.count !== 1) {
+        throw new BadRequestError('Invalid or expired password reset token', 'INVALID_RESET_TOKEN');
+      }
+
+      // 1. Update user password (does NOT bypass mandatory email verification)
+      await tx.user.update({
+        where: { id: resetRecord.userId },
+        data: {
+          passwordHash: newPasswordHash
+        }
+      });
+      // 2. Invalidate all sessions across all devices for this user
+      await tx.session.deleteMany({
         where: { userId: resetRecord.userId }
-      }),
-      // 4. Revoke all refresh tokens
-      prisma.refreshToken.updateMany({
+      });
+      // 3. Revoke all refresh tokens
+      await tx.refreshToken.updateMany({
         where: { userId: resetRecord.userId },
         data: { revoked: true }
-      })
-    ]);
+      });
+    });
 
     const user = await userRepository.findById(resetRecord.userId);
     if (user) {
@@ -418,16 +455,26 @@ export class AuthService {
       throw new BadRequestError('Invalid or expired email verification token.', 'INVALID_VERIFICATION_TOKEN');
     }
 
-    await prisma.$transaction([
-      prisma.emailVerificationToken.update({
-        where: { id: record.id },
+    await prisma.$transaction(async (tx) => {
+      // Single-use atomic claim: only one concurrent verification can succeed.
+      const claimed = await tx.emailVerificationToken.updateMany({
+        where: {
+          id: record.id,
+          used: false,
+          expiresAt: { gt: new Date() }
+        },
         data: { used: true }
-      }),
-      prisma.user.update({
+      });
+
+      if (claimed.count !== 1) {
+        throw new BadRequestError('Invalid or expired email verification token.', 'INVALID_VERIFICATION_TOKEN');
+      }
+
+      await tx.user.update({
         where: { id: record.userId },
         data: { emailVerified: true }
-      })
-    ]);
+      });
+    });
 
     return { message: 'Email address verified successfully. You may now sign in.' };
   }
@@ -465,9 +512,10 @@ export class AuthService {
       }
     });
 
-    emailService.sendVerificationEmail(user.email, user.displayName, rawToken).catch((err) => {
-      console.warn('[AuthService] Could not resend verification email:', err?.message || err);
-    });
+    const emailResult = await emailService.sendVerificationEmail(user.email, user.displayName, rawToken);
+    if (!emailResult.success) {
+      console.warn(`[AuthService] Could not resend verification email: ${emailService.sanitizeLogMessage(emailResult.error || '')}`);
+    }
 
     return {
       message: genericMessage,
@@ -507,7 +555,11 @@ export class AuthService {
       return null;
     }
 
-    const isVerificationEnforced = env.REQUIRE_EMAIL_VERIFICATION || process.env.REQUIRE_EMAIL_VERIFICATION === 'true';
+    const isVerificationEnforced = process.env.NODE_ENV === 'production'
+      ? true
+      : (process.env.REQUIRE_EMAIL_VERIFICATION !== undefined
+        ? process.env.REQUIRE_EMAIL_VERIFICATION === 'true'
+        : env.REQUIRE_EMAIL_VERIFICATION);
     if (isVerificationEnforced && !session.user.emailVerified && !session.user.googleId) {
       return null;
     }

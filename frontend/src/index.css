@@ -34,21 +34,21 @@
 /* Vibrant Chess.com Buttons & Tactile Shadows                              */
 /* ========================================================================= */
 .chess-btn-green {
-  background-color: #81B64C;
+  background-color: #047857;
   color: #FFFFFF;
   font-weight: 800;
-  box-shadow: 0 4px 0 #588329;
+  box-shadow: 0 4px 0 #065F46;
   transition: all 0.15s ease;
   cursor: pointer;
 }
 .chess-btn-green:hover {
-  background-color: #73A444;
+  background-color: #065F46;
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 #588329;
+  box-shadow: 0 5px 0 #065F46;
 }
 .chess-btn-green:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 #588329;
+  box-shadow: 0 1px 0 #065F46;
 }
 
 .chess-btn-blue {
@@ -145,4 +145,40 @@ html.dark, html[data-theme="dark"], body.dark {
 }
 .dark ::-webkit-scrollbar-thumb, [data-theme="dark"] ::-webkit-scrollbar-thumb {
   background: #334155;
+}
+
+/* ========================================================================= */
+/* Accessibility: contrast-safe light theme tokens and 44px tap helpers      */
+/* ========================================================================= */
+html[data-theme="light"] .text-emerald-500,
+html[data-theme="light"] .text-emerald-600 {
+  color: #047857;
+}
+html[data-theme="light"] .text-amber-600 {
+  color: #92400E;
+}
+html[data-theme="light"] .bg-emerald-600 {
+  background-color: #047857;
+}
+html[data-theme="light"] .hover\:bg-emerald-500:hover {
+  background-color: #065F46;
+}
+
+/* Keep these helpers in the utilities layer, and use :where() so explicit
+   display utilities such as `hidden` / `lg:flex` still win the cascade. */
+@layer utilities {
+  :where(.a11y-tap) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  :where(.a11y-icon-button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  :where(.a11y-tab) {
+    min-height: 44px;
+  }
 }

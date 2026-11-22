@@ -83,7 +83,7 @@ export const EvaluationBar: React.FC<EvaluationBarProps> = ({
         title={
           evaluation.source === 'heuristic'
             ? 'Positional heuristic active while Stockfish initializes'
-            : `Stockfish 16 Lite Active (Depth ${evaluation.depth ?? 12})`
+            : `Stockfish 19 Lite Active (Depth ${evaluation.depth ?? 12})`
         }
         data-testid="engine-source-pill"
       >

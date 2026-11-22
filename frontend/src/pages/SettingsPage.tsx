@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { sounds } from '../utils/soundEffects';
 import { CoachMode } from '../types/coach';
 import { useTheme } from '../context/ThemeContext';
+import { useSettings } from '../context/SettingsContext';
 import {
   Volume2,
   VolumeX,
@@ -18,21 +19,28 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = () => {
-  const { theme, toggleTheme, setTheme } = useTheme();
-  const [soundEnabled, setSoundEnabled] = useState(() => sounds.getSoundEnabled());
-  const [coachMode, setCoachMode] = useState<CoachMode>('FULL_COACHING');
-  const [showCoordinates, setShowCoordinates] = useState(true);
-  const [showLegalDots, setShowLegalDots] = useState(true);
+  const { theme, setTheme } = useTheme();
+  const { settings, saveSettings } = useSettings();
+  const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+  const [coachMode, setCoachMode] = useState<CoachMode>(settings.coachMode);
+  const [showCoordinates, setShowCoordinates] = useState(settings.showCoordinates);
+  const [showLegalDots, setShowLegalDots] = useState(settings.showLegalDots);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleToggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
-    sounds.setSoundEnabled(next);
-    if (next) sounds.playMove();
+    if (next) {
+      // Preview the sound without changing the global setting until Save.
+      const wasEnabled = sounds.getSoundEnabled();
+      sounds.setSoundEnabled(true);
+      sounds.playMove();
+      sounds.setSoundEnabled(wasEnabled);
+    }
   };
 
   const handleSave = () => {
+    saveSettings({ coachMode, showCoordinates, showLegalDots, soundEnabled });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
@@ -42,14 +50,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
       {/* Header */}
       <div className="pb-3 border-b border-slate-200 dark:border-[#1E222B]">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[11px] font-black text-[#81B64C] dark:text-emerald-400 uppercase tracking-wider">
+          <span className="text-[11px] font-black text-[#3F6B1B] dark:text-emerald-400 uppercase tracking-wider">
             Preferences & Configuration
           </span>
         </div>
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-display tracking-tight">
           Application Settings
         </h1>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+        <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">
           Customize your visual theme, coach interaction depth, and acoustic sound effects.
         </p>
       </div>
@@ -60,13 +68,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Palette className="w-4 h-4 text-[#81B64C]" />
-              <h3 className="text-sm font-black text-slate-900 dark:text-white">Interface Theme</h3>
+              <h2 className="text-sm font-black text-slate-900 dark:text-white">Interface Theme</h2>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
               {theme === 'light' ? 'Light Mode Active' : 'Dark Mode Active'}
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-zinc-400">
+          <p className="text-xs text-slate-600 dark:text-zinc-400">
             Switch between crisp daytime colors and comfortable warm dark styling.
           </p>
 
@@ -89,7 +97,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
                   <div className="text-xs font-black text-slate-900 dark:text-white">Vibrant Light Mode</div>
                   {theme === 'light' && <CheckCircle2 className="w-4 h-4 text-[#81B64C]" />}
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-snug">
+                <div className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-snug">
                   Clean white & light slate canvas with vivid emerald action buttons and rich gold badges.
                 </div>
               </div>
@@ -113,7 +121,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
                   <div className="text-xs font-black text-slate-900 dark:text-white">Warm Charcoal Dark Mode</div>
                   {theme === 'dark' && <CheckCircle2 className="w-4 h-4 text-[#81B64C]" />}
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-snug">
+                <div className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-snug">
                   Deep slate (#12151B) with emerald glow accents and high-contrast tournament board.
                 </div>
               </div>
@@ -125,9 +133,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-[#273042] shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#81B64C]" />
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">AI Coach Feedback Intensity</h3>
+            <h2 className="text-sm font-black text-slate-900 dark:text-white">AI Coach Feedback Intensity</h2>
           </div>
-          <p className="text-xs text-slate-500 dark:text-zinc-400">
+          <p className="text-xs text-slate-600 dark:text-zinc-400">
             Control how frequently the AI Coach interrupts with pedagogical comments.
           </p>
 
@@ -149,7 +157,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
                 }`}
               >
                 <div className="text-xs font-black text-slate-900 dark:text-white mb-0.5">{m.title}</div>
-                <div className="text-[11px] text-slate-500 dark:text-zinc-400 leading-snug">{m.desc}</div>
+                <div className="text-[11px] text-slate-600 dark:text-zinc-400 leading-snug">{m.desc}</div>
               </button>
             ))}
           </div>
@@ -162,8 +170,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
               {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-400 dark:text-zinc-500" />}
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">Chess.com Sound Effects</h3>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+              <h2 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">Chess.com Sound Effects</h2>
+              <p className="text-[11px] text-slate-600 dark:text-zinc-400">
                 Acoustic wooden "thock" synthesizer for piece moves, captures, checks, and victories.
               </p>
             </div>
@@ -186,7 +194,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = () => {
         <div className="p-5 rounded-2xl bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-[#273042] shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-[#81B64C]" />
-            <h3 className="text-sm font-black text-slate-900 dark:text-white">Board Display Options</h3>
+            <h2 className="text-sm font-black text-slate-900 dark:text-white">Board Display Options</h2>
           </div>
 
           <div className="space-y-2">

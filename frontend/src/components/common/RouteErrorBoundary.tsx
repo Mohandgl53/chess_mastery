@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RotateCcw, Home, LayoutDashboard } from 'lucide-react';
+import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -49,9 +49,9 @@ export class RouteErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-xl font-bold text-slate-100">
+              <h1 className="text-xl font-bold text-slate-100">
                 {this.props.routeName ? `${this.props.routeName} failed to load` : 'Page failed to load'}
-              </h2>
+              </h1>
               <p className="text-sm text-slate-400">
                 An error occurred while loading this page. Your chess data is safe.
               </p>

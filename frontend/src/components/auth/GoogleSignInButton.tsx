@@ -9,6 +9,11 @@ interface GoogleSignInButtonProps {
   disabled?: boolean;
 }
 
+// GIS is a browser-wide singleton. Track initialisation per client id so multiple
+// button instances (and React re-renders) never call initialize() more than once.
+let gisInitializedClientId: string | null = null;
+let gisButtonInstanceCount = 0;
+
 export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   onSuccess,
   onError,
@@ -18,6 +23,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 }) => {
   const { googleLogin } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [instanceId] = useState(() => `gis-${++gisButtonInstanceCount}`);
   const [isGisReady, setIsGisReady] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -43,6 +49,12 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     [googleLogin, onSuccess, onError]
   );
 
+  // Keep the callback fresh without restarting GIS initialisation on every render.
+  const credentialCallbackRef = useRef(handleCredentialResponse);
+  useEffect(() => {
+    credentialCallbackRef.current = handleCredentialResponse;
+  }, [handleCredentialResponse]);
+
   useEffect(() => {
     if (!clientId) {
       return;
@@ -58,13 +70,18 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         if (intervalId) clearInterval(intervalId);
 
         try {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: handleCredentialResponse,
-            auto_select: false,
-            cancel_on_tap_outside: true,
-            context: text === 'signup_with' ? 'signup' : 'signin'
-          });
+          const needsInit = gisInitializedClientId !== clientId;
+          if (needsInit) {
+            window.google.accounts.id.initialize({
+              client_id: clientId,
+              callback: (response: { credential?: string }) =>
+                credentialCallbackRef.current(response),
+              auto_select: false,
+              cancel_on_tap_outside: true,
+              context: text === 'signup_with' ? 'signup' : 'signin'
+            });
+            gisInitializedClientId = clientId;
+          }
 
           // Clear any previous rendered button if re-rendering
           if (containerRef.current) {
@@ -80,12 +97,33 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
               logo_alignment: 'left',
               width: buttonWidth
             });
+
+            // GIS assigns the same literal IDs to every rendered button on the page.
+            // Scope them to this instance so the mobile and desktop copies stay unique.
+            const container = containerRef.current;
+            const renameMap: Record<string, string> = {};
+            container.querySelectorAll('[id]').forEach((el) => {
+              const oldId = el.id;
+              const newId = `${oldId}-${instanceId}`;
+              el.id = newId;
+              renameMap[oldId] = newId;
+            });
+            container.querySelectorAll('[aria-labelledby], [aria-describedby]').forEach((el) => {
+              for (const attr of ['aria-labelledby', 'aria-describedby']) {
+                const value = el.getAttribute(attr);
+                if (!value) continue;
+                const next = value.split(/\s+/).map((token) => renameMap[token] || token).join(' ');
+                if (next !== value) el.setAttribute(attr, next);
+              }
+            });
           }
 
           setIsGisReady(true);
 
-          // Prompt One Tap / floating popup if supported
-          window.google.accounts.id.prompt();
+          // One Tap prompt is global — only request it on the first initialisation.
+          if (needsInit) {
+            window.google.accounts.id.prompt();
+          }
         } catch (err) {
           console.warn('[GIS] Initialization warning:', err);
         }
@@ -100,7 +138,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [clientId, handleCredentialResponse, text]);
+  }, [clientId, text, instanceId]);
 
   const handleFallbackClick = () => {
     if (!clientId) {
@@ -133,6 +171,13 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
           type="button"
           onClick={handleFallbackClick}
           disabled={disabled || isProcessing}
+          aria-label={
+            text === 'signup_with'
+              ? 'Sign up with Google'
+              : text === 'continue_with'
+                ? 'Continue with Google'
+                : 'Sign in with Google'
+          }
           className="w-full flex items-center justify-center gap-2.5 py-3 sm:py-3.5 px-3 rounded-xl sm:rounded-2xl border border-stone-200 hover:border-stone-300 hover:bg-stone-50/80 transition-all text-xs sm:text-sm font-semibold text-stone-700 cursor-pointer shadow-2xs disabled:opacity-50"
         >
           <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" viewBox="0 0 24 24">

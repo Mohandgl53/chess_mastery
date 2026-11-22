@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   displayName: string;
   role?: 'USER' | 'ADMIN';
+  emailVerified?: boolean;
 }
 
 export interface AuthProfile {
@@ -36,6 +37,12 @@ export interface AuthProfile {
 export interface AuthSession {
   user: AuthUser;
   profile: AuthProfile;
+  tokens?: {
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: string;
+  };
+  message?: string;
 }
 
 export interface LoginInput {

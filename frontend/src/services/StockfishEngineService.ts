@@ -4,18 +4,16 @@
  * Production IChessEngineService implementation backed by Stockfish 19 lite-single WASM.
  *
  * ARCHITECTURE:
- *   This service spawns stockfish-19-lite-single.js DIRECTLY as a Web Worker using
- *   the hash-based WASM URL pattern:
- *     new Worker('/stockfish-19-lite-single.js#/stockfish-19-lite-single.wasm,worker')
- *
- *   This avoids any Vite worker wrapper and the importScripts() ES module incompatibility.
- *   All engine computation runs off the main thread. The service communicates via raw UCI strings.
+ *   This service spawns /stockfish.worker.js, a classic Web Worker bridge that imports
+ *   stockfish-19-lite-single.js, initialises it with the correct MODULARIZE factory call,
+ *   and forwards raw UCI commands. The engine runs off the main thread; no Vite worker
+ *   wrapper or COOP/COEP headers are required.
  *
  * ENGINE PROFILES (separate depth/time per operation):
  *   BOT_MOVE    — depth + movetime based on GameDifficulty
  *   LIVE_EVAL   — depth 12 (fast, for evaluation bar)
  *   HINT        — depth 12, MultiPV 3 (candidate moves)
- *   CLASSIFY    — depth 14 (move classification, needs accuracy)
+ *   CLASSIFY    — depth 12 (move classification, needs accuracy)
  *
  * STALE RESPONSE PROTECTION:
  *   Every request has a unique requestId (UUID-like string).
@@ -32,9 +30,10 @@
  */
 
 import { Chess, Square } from 'chess.js';
-import { EvaluationData, MoveClassification } from '../types/chess';
+import { EvaluationData } from '../types/chess';
 import { GameDifficulty } from '../types/game';
 import type { IChessEngineService, CandidateMove } from './chessEngine';
+import { classifyEvalDeltaCp, pawnsToCp } from '../utils/moveClassification';
 
 // ─── Engine profiles ───────────────────────────────────────────────────────
 
@@ -80,7 +79,7 @@ const READY_TIMEOUT_MS  = 30000; // 30s — WASM needs to download + compile on 
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-interface ParsedInfo {
+export interface ParsedInfo {
   depth: number;
   multiPV: number;
   score: number;
@@ -102,7 +101,7 @@ function genId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
-function uciToMove(uciMove: string, fen: string): { san: string; from: string; to: string; promotion?: string } | null {
+export function uciToMove(uciMove: string, fen: string): { san: string; from: string; to: string; promotion?: string } | null {
   try {
     const chess = new Chess(fen);
     const from = uciMove.slice(0, 2) as Square;
@@ -116,7 +115,7 @@ function uciToMove(uciMove: string, fen: string): { san: string; from: string; t
   }
 }
 
-function buildExplanation(uciMove: string, fen: string): string {
+export function buildExplanation(uciMove: string, fen: string): string {
   try {
     const chess = new Chess(fen);
     const from = uciMove.slice(0, 2) as Square;
@@ -139,7 +138,7 @@ function buildExplanation(uciMove: string, fen: string): string {
   }
 }
 
-function scoreToLabel(score: number): EvaluationData['label'] {
+export function scoreToLabel(score: number): EvaluationData['label'] {
   if (score >= 3.0)  return 'Winning';
   if (score >= 1.5)  return 'Better';
   if (score >= 0.5)  return 'Slightly Better';
@@ -149,7 +148,7 @@ function scoreToLabel(score: number): EvaluationData['label'] {
   return 'Equal';
 }
 
-function parseInfo(line: string): ParsedInfo | null {
+export function parseInfo(line: string): ParsedInfo | null {
   if (!line.startsWith('info') || !line.includes('score')) return null;
 
   const depthM  = line.match(/\bdepth\s+(\d+)/);
@@ -171,7 +170,7 @@ function parseInfo(line: string): ParsedInfo | null {
   return { depth, multiPV, score, isMate, mateIn, pv };
 }
 
-function parseBestMove(line: string): string | null {
+export function parseBestMove(line: string): string | null {
   const m = line.match(/^bestmove\s+([a-h][1-8][a-h][1-8][qrbn]?)/);
   return m ? m[1] : null;
 }
@@ -188,7 +187,7 @@ interface CachedEvaluation {
 const EVAL_CACHE_MAX_SIZE = 600;
 const evalCache = new Map<string, CachedEvaluation>();
 
-function normalizeFenKey(fen: string): string {
+export function normalizeFenKey(fen: string): string {
   // Normalize FEN to piece placement, turn, castling, and en-passant (ignore 50-move & move counter)
   const parts = fen.trim().split(/\s+/);
   return parts.slice(0, 4).join(' ');
@@ -204,11 +203,14 @@ export class StockfishEngineService implements IChessEngineService {
   private readyReject!: (err: Error) => void;
   private pendingRequest: PendingRequest | null = null;
   private isProcessingCommand = false;
+  private readyTimer: ReturnType<typeof setTimeout> | null = null;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private stopTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    // Stockfish 19 Lite Single WASM native Web Worker bootstrap.
-    console.info('[Stockfish] Spawning native Web Worker: /stockfish-19-lite-single.js');
-    this.worker = new Worker('/stockfish-19-lite-single.js#/stockfish-19-lite-single.wasm,worker');
+    // Stockfish 19 Lite Single WASM runs inside a dedicated UCI bridge worker.
+    console.info('[Stockfish] Spawning Stockfish 19 WASM worker bridge.');
+    this.worker = new Worker('/stockfish.worker.js');
 
     this.readyPromise = new Promise<void>((resolve, reject) => {
       this.readyResolve = resolve;
@@ -231,7 +233,7 @@ export class StockfishEngineService implements IChessEngineService {
     this.send('setoption name Hash value 32');
     this.send('isready');
 
-    setTimeout(() => {
+    this.readyTimer = setTimeout(() => {
       if (!this.isReady) {
         this.readyReject(new Error('Stockfish engine did not become ready within timeout'));
       }
@@ -250,6 +252,10 @@ export class StockfishEngineService implements IChessEngineService {
     if (!line || typeof line !== 'string') return;
 
     if (line === 'readyok') {
+      if (this.readyTimer) {
+        clearTimeout(this.readyTimer);
+        this.readyTimer = null;
+      }
       this.isReady = true;
       this.readyResolve();
       return;
@@ -271,6 +277,14 @@ export class StockfishEngineService implements IChessEngineService {
 
     if (line.startsWith('bestmove')) {
       const uciMove = parseBestMove(line);
+      if (this.searchTimer) {
+        clearTimeout(this.searchTimer);
+        this.searchTimer = null;
+      }
+      if (this.stopTimer) {
+        clearTimeout(this.stopTimer);
+        this.stopTimer = null;
+      }
       this.pendingRequest = null;
       this.isProcessingCommand = false;
       if (uciMove) {
@@ -302,7 +316,15 @@ export class StockfishEngineService implements IChessEngineService {
     }
 
     return new Promise((resolve, reject) => {
-      // Cancel any existing search safely
+      // Cancel any existing search safely and discard its stale timers.
+      if (this.searchTimer) {
+        clearTimeout(this.searchTimer);
+        this.searchTimer = null;
+      }
+      if (this.stopTimer) {
+        clearTimeout(this.stopTimer);
+        this.stopTimer = null;
+      }
       if (this.pendingRequest) {
         this.send('stop');
         try {
@@ -343,11 +365,11 @@ export class StockfishEngineService implements IChessEngineService {
       this.send(goCmd);
 
       // Guard with timeout
-      setTimeout(() => {
+      this.searchTimer = setTimeout(() => {
         if (this.pendingRequest?.requestId === requestId) {
           this.send('stop');
           // Engine will emit bestmove after stop; wait 1500ms before falling back
-          setTimeout(() => {
+          this.stopTimer = setTimeout(() => {
             if (this.pendingRequest?.requestId === requestId) {
               this.pendingRequest = null;
               this.isProcessingCommand = false;
@@ -503,28 +525,34 @@ export class StockfishEngineService implements IChessEngineService {
     const scoreAfterInfo = [...afterResult.infos.values()].sort((a, b) => b.depth - a.depth)[0];
     const scoreAfter = scoreAfterInfo?.score ?? 0;
 
-    // Centipawn values (raw, White-relative) for the backend
-    const evalBeforeCp = Math.round(scoreBefore * 100);
-    const evalAfterCp  = Math.round(scoreAfter * 100);
+    const evalBeforeCp = pawnsToCp(scoreBefore);
+    const evalAfterCp = pawnsToCp(scoreAfter);
 
-    // Normalize: UCI scores are always from White's perspective.
+    // Normalize: UCI scores are always from White's perspective. Result is centipawns.
     const sideSign = movingSide === 'w' ? 1 : -1;
-    const evalDelta = Math.max(0, Math.round(((scoreBefore - scoreAfter) * sideSign) * 10) / 10);
+    const evalDelta = Math.max(0, Math.round((scoreBefore - scoreAfter) * sideSign * 100));
 
     if (moveSan === bestMove) {
       return { classification: 'BEST', bestMove, evalDelta: 0, explanation: 'Top engine recommendation. Optimal move in this position.', evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
     }
-    if (evalDelta < 0.3) {
-      return { classification: 'EXCELLENT', bestMove, evalDelta, explanation: 'Strong move maintaining full positional control.', evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else if (evalDelta < 0.8) {
-      return { classification: 'GOOD', bestMove, evalDelta, explanation: 'Solid practical choice keeping the position balanced.', evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else if (evalDelta < 1.8) {
-      return { classification: 'INACCURACY', bestMove, evalDelta, explanation: `Slight inaccuracy. ${bestMove} was more active and purposeful.`, evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else if (evalDelta < 3.2) {
-      return { classification: 'MISTAKE', bestMove, evalDelta, explanation: `Positional mistake giving opponent counterplay. Best was ${bestMove}.`, evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else {
-      return { classification: 'BLUNDER', bestMove, evalDelta, explanation: `Critical blunder that damages the position. Better was ${bestMove}.`, evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    }
+    const classification = classifyEvalDeltaCp(evalDelta);
+    const explanations: Record<typeof classification, string> = {
+      EXCELLENT: 'Strong move maintaining full positional control.',
+      GOOD: 'Solid practical choice keeping the position balanced.',
+      INACCURACY: `Slight inaccuracy. ${bestMove} was more active and purposeful.`,
+      MISTAKE: `Positional mistake giving opponent counterplay. Best was ${bestMove}.`,
+      BLUNDER: `Critical blunder that damages the position. Better was ${bestMove}.`
+    };
+
+    return {
+      classification,
+      bestMove,
+      evalDelta,
+      explanation: explanations[classification],
+      evalBefore: evalBeforeCp,
+      evalAfter: evalAfterCp,
+      principalVariation
+    };
   }
 
   /** Terminate the engine worker cleanly */

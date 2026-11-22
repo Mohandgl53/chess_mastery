@@ -1,6 +1,6 @@
 import React from 'react';
 import { CoachMessage, CoachMessageType } from '../../types/coach';
-import { Sparkles, CheckCircle2, AlertTriangle, AlertCircle, Lightbulb, BookOpen, Target, WifiOff, Brain, ArrowRight } from 'lucide-react';
+import { Sparkles, CheckCircle2, AlertTriangle, AlertCircle, Lightbulb, BookOpen, Target, Brain, ArrowRight } from 'lucide-react';
 
 interface CoachMessageCardProps {
   message: CoachMessage;
@@ -70,11 +70,11 @@ export const CoachMessageCard: React.FC<CoachMessageCardProps> = ({
         };
       case 'COACH_UNAVAILABLE':
         return {
-          icon: <WifiOff className="w-4 h-4 text-amber-600 dark:text-amber-400" />,
-          badge: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60',
-          container: 'bg-amber-50/80 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800/40',
-          titleColor: 'text-amber-900 dark:text-amber-300',
-          accent: 'border-l-4 border-l-amber-500'
+          icon: <Brain className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+          badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60',
+          container: 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/40',
+          titleColor: 'text-emerald-900 dark:text-emerald-300',
+          accent: 'border-l-4 border-l-emerald-500'
         };
       default:
         return {

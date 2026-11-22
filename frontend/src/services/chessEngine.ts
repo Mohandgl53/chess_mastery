@@ -1,6 +1,7 @@
 import { Chess, Move } from 'chess.js';
 import { EvaluationData, MoveClassification } from '../types/chess';
 import { GameDifficulty } from '../types/game';
+import { classifyEvalDeltaCp, pawnsToCp } from '../utils/moveClassification';
 
 export interface CandidateMove {
   san: string;
@@ -21,6 +22,7 @@ export interface IChessEngineService {
   ): Promise<{
     classification: MoveClassification;
     bestMove: string;
+    /** Centipawns lost by the moving side (100 cp = 1 pawn). */
     evalDelta: number;
     explanation: string;
     /** Centipawn evaluation of position BEFORE the move (White-relative, 100cp = 1 pawn) */
@@ -273,6 +275,7 @@ export class MockChessEngine implements IChessEngineService {
   ): Promise<{
     classification: MoveClassification;
     bestMove: string;
+    /** Centipawns lost by the moving side (100 cp = 1 pawn). */
     evalDelta: number;
     explanation: string;
     evalBefore: number;
@@ -286,13 +289,12 @@ export class MockChessEngine implements IChessEngineService {
     const candidates = await this.getCandidateMoves(fenBefore, 1);
     const bestMove = candidates[0]?.san || moveSan;
 
-    // Convert pawn scores to centipawns for the backend
-    const evalBeforeCp = Math.round(evalBeforeData.score * 100);
-    const evalAfterCp = Math.round(evalAfterData.score * 100);
+    const evalBeforeCp = pawnsToCp(evalBeforeData.score);
+    const evalAfterCp = pawnsToCp(evalAfterData.score);
 
     const sideSign = movingSide === 'w' ? 1 : -1;
-    // positive evalDelta = moved side lost advantage (bad move)
-    const evalDelta = Math.max(0, Math.round(((evalBeforeData.score - evalAfterData.score) * sideSign) * 10) / 10);
+    // Positive evalDelta = moved side lost advantage (bad move), in centipawns.
+    const evalDelta = Math.max(0, Math.round((evalBeforeData.score - evalAfterData.score) * sideSign * 100));
 
     // Principal variation: best move from before position
     const principalVariation = bestMove ? [bestMove] : [];
@@ -309,17 +311,24 @@ export class MockChessEngine implements IChessEngineService {
       };
     }
 
-    if (evalDelta < 0.3) {
-      return { classification: 'EXCELLENT', bestMove, evalDelta, explanation: 'Strong move maintaining full positional control.', evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else if (evalDelta < 0.8) {
-      return { classification: 'GOOD', bestMove, evalDelta, explanation: 'Solid practical choice that keeps the position balanced.', evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else if (evalDelta < 1.8) {
-      return { classification: 'INACCURACY', bestMove, evalDelta, explanation: `Slight inaccuracy. ${bestMove} was more active and purposeful.`, evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else if (evalDelta < 3.2) {
-      return { classification: 'MISTAKE', bestMove, evalDelta, explanation: `Positional mistake allowing opponent easy counterplay. Best was ${bestMove}.`, evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    } else {
-      return { classification: 'BLUNDER', bestMove, evalDelta, explanation: `Critical blunder that drops material or severely damages your position. Better was ${bestMove}.`, evalBefore: evalBeforeCp, evalAfter: evalAfterCp, principalVariation };
-    }
+    const classification = classifyEvalDeltaCp(evalDelta);
+    const explanations: Record<typeof classification, string> = {
+      EXCELLENT: 'Strong move maintaining full positional control.',
+      GOOD: 'Solid practical choice that keeps the position balanced.',
+      INACCURACY: `Slight inaccuracy. ${bestMove} was more active and purposeful.`,
+      MISTAKE: `Positional mistake allowing opponent easy counterplay. Best was ${bestMove}.`,
+      BLUNDER: `Critical blunder that drops material or severely damages your position. Better was ${bestMove}.`
+    };
+
+    return {
+      classification,
+      bestMove,
+      evalDelta,
+      explanation: explanations[classification],
+      evalBefore: evalBeforeCp,
+      evalAfter: evalAfterCp,
+      principalVariation
+    };
   }
 
   getStatus() {
@@ -334,7 +343,7 @@ export const mockChessEngine = new MockChessEngine();
  * Default chess engine singleton.
  *
  * Uses StockfishEngineService (Stockfish 19 lite-single WASM, no COOP/COEP required).
- * If the Stockfish worker fails to initialize within 8 seconds, operations fall through
+ * If the Stockfish worker fails to initialize within 30 seconds, operations fall through
  * to MockChessEngine automatically so the app never breaks.
  *
  * Import path stays the same for all consumers — no PlayPage changes needed.

@@ -22,6 +22,7 @@ export function createApp(): express.Application {
   // CORS Configuration — exact origins only, credentials required for cookies
   const allowedOrigins = [
     env.CLIENT_URL.replace(/\/$/, ''),
+    ...(env.PUBLIC_CLIENT_URL ? [env.PUBLIC_CLIENT_URL.replace(/\/$/, '')] : []),
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost',

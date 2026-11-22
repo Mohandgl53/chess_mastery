@@ -127,6 +127,8 @@ export class JwtService {
   async rotateRefreshToken(rawRefreshToken: string): Promise<TokenPair> {
     const tokenHash = hashToken(rawRefreshToken);
 
+    // Pre-flight read preserves the specific error codes/messages clients rely on.
+    // The authoritative revocation decision is made atomically below.
     const storedToken = await prisma.refreshToken.findUnique({
       where: { tokenHash },
       include: { user: true }
@@ -134,18 +136,6 @@ export class JwtService {
 
     if (!storedToken) {
       throw new UnauthorizedError('Invalid refresh token', 'INVALID_REFRESH_TOKEN');
-    }
-
-    // Token Reuse Detection: If a revoked token is used, suspect theft and invalidate all sessions!
-    if (storedToken.revoked) {
-      await prisma.refreshToken.updateMany({
-        where: { userId: storedToken.userId },
-        data: { revoked: true }
-      });
-      throw new UnauthorizedError(
-        'Refresh token reuse detected. All sessions have been revoked for security.',
-        'TOKEN_REUSE_DETECTED'
-      );
     }
 
     // Check expiry
@@ -165,35 +155,77 @@ export class JwtService {
       );
     }
 
-    // Generate new refresh token
+    // Sequential reuse is still detected here, but the conditional claim below
+    // is what makes concurrent rotation safe.
+    if (storedToken.revoked) {
+      await prisma.refreshToken.updateMany({
+        where: { userId: storedToken.userId },
+        data: { revoked: true }
+      });
+      throw new UnauthorizedError(
+        'Refresh token reuse detected. All sessions have been revoked for security.',
+        'TOKEN_REUSE_DETECTED'
+      );
+    }
+
     const newRawToken = generateRawToken();
     const newTokenHash = hashToken(newRawToken);
     const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
 
-    // Atomically revoke old and create new
-    await prisma.$transaction([
-      prisma.refreshToken.update({
-        where: { id: storedToken.id },
-        data: {
-          revoked: true,
-          replacedBy: newTokenHash
+    const claim = await prisma.$transaction(async (tx) => {
+      // Single atomic conditional claim: exactly one caller can flip revoked=false.
+      const claimed = await tx.refreshToken.updateMany({
+        where: { id: storedToken.id, revoked: false },
+        data: { revoked: true, replacedBy: newTokenHash }
+      });
+
+      if (claimed.count !== 1) {
+        // Zero rows means another request claimed/revoked the token first.
+        const current = await tx.refreshToken.findUnique({
+          where: { id: storedToken.id },
+          include: { user: true }
+        });
+
+        if (current?.revoked) {
+          // Reuse detected: revoke every token for that user inside this same
+          // transaction (including the replacement issued by the winner).
+          await tx.refreshToken.updateMany({
+            where: { userId: current.userId },
+            data: { revoked: true }
+          });
+          return { status: 'reuse' as const };
         }
-      }),
-      prisma.refreshToken.create({
+
+        return { status: 'invalid' as const };
+      }
+
+      await tx.refreshToken.create({
         data: {
           tokenHash: newTokenHash,
           userId: storedToken.userId,
           expiresAt: newExpiresAt,
           revoked: false
         }
-      })
-    ]);
+      });
+
+      return { status: 'ok' as const, user: storedToken.user };
+    });
+
+    if (claim.status === 'reuse') {
+      throw new UnauthorizedError(
+        'Refresh token reuse detected. All sessions have been revoked for security.',
+        'TOKEN_REUSE_DETECTED'
+      );
+    }
+    if (claim.status === 'invalid') {
+      throw new UnauthorizedError('Invalid refresh token', 'INVALID_REFRESH_TOKEN');
+    }
 
     const user: AuthenticatedUser = {
-      id: storedToken.user.id,
-      email: storedToken.user.email,
-      displayName: storedToken.user.displayName,
-      role: storedToken.user.role
+      id: claim.user.id,
+      email: claim.user.email,
+      displayName: claim.user.displayName,
+      role: claim.user.role
     };
 
     const accessToken = this.generateAccessToken(user);

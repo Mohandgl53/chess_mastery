@@ -60,7 +60,7 @@ export class CoachService {
         context.openingName,
         context.classification,
         `move ${context.moveSan}`,
-        context.evalDelta && context.evalDelta < -100 ? 'tactical blunder mistake' : '',
+        context.evalDelta && context.evalDelta >= 100 ? 'tactical blunder mistake' : '',
         context.principalVariation?.slice(0, 3).join(' ')
       ]
         .filter(Boolean)

@@ -1,9 +1,38 @@
 import { Router } from 'express';
 import { Chess } from 'chess.js';
 import { puzzleRateLimiter } from '../middleware/rateLimiter.js';
+import { prisma } from '../config/database.js';
 
 export const puzzleRoutes = Router();
 puzzleRoutes.use(puzzleRateLimiter);
+
+// Authoritative, verified puzzle library stored in the database.
+// Public read-only endpoint; the UI falls back to its bundled catalog on failure.
+puzzleRoutes.get('/library', async (_req, res) => {
+  try {
+    const puzzles = await prisma.puzzle.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        title: true,
+        theme: true,
+        rating: true,
+        difficulty: true,
+        fen: true,
+        playerColor: true,
+        solutionMoves: true,
+        hints: true,
+        tacticalExplanation: true,
+        coachInsight: true
+      },
+      orderBy: [{ rating: 'asc' }, { id: 'asc' }]
+    });
+    res.json({ success: true, puzzles });
+  } catch (error) {
+    console.error('[puzzles] Failed to load library:', error);
+    res.status(500).json({ success: false, error: 'Failed to load puzzle library' });
+  }
+});
 
 // Helper to parse Chess.com PGN and FEN into legal Puzzle format
 function parseChessComPuzzle(data: any) {

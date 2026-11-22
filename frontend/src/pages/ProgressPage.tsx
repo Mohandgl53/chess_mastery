@@ -18,21 +18,16 @@ import {
   Sparkles,
   CheckCircle2,
   AlertTriangle,
-  BookOpen,
   ArrowRight,
   ShieldAlert,
   Brain,
   Activity,
   RefreshCw,
   Play,
-  Check,
   Filter,
   BarChart3,
   BarChart2,
-  Clock,
-  Share2,
-  Trophy,
-  Swords
+  Clock
 } from 'lucide-react';
 
 interface ProgressPageProps {
@@ -198,15 +193,15 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
   }, [currentRating]);
 
   // ELO Progress percentage towards next milestone
-  const milestoneProgress = useMemo(() => {
+  const _milestoneProgress = useMemo(() => {
     const range = playerTier.nextMilestone - playerTier.currentBase;
     const progress = currentRating - playerTier.currentBase;
     return Math.min(100, Math.max(5, Math.round((progress / range) * 100)));
   }, [currentRating, playerTier]);
 
-  const pointsToNextMilestone = Math.max(0, playerTier.nextMilestone - currentRating);
+  const _pointsToNextMilestone = Math.max(0, playerTier.nextMilestone - currentRating);
 
-  const displayEmail = useMemo(() => {
+  const _displayEmail = useMemo(() => {
     return formatDisplayEmail(
       user?.email || localProfile.username,
       user?.displayName || localProfile.name
@@ -413,7 +408,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
   }, [profile, skillCategoryFilter, skillSortBy]);
 
   // Copy Profile Card to Clipboard
-  const handleShareProfile = () => {
+  const _handleShareProfile = () => {
     const text = `🏆 Chess Coach Profile — ${user?.displayName || localProfile.name || 'Player'}
 ⭐ Rating: ${currentRating} (${playerTier.badge})
 🎯 Composite Training Score: ${overallTrainingScore}/100
@@ -450,7 +445,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                 <BarChart2 className="w-3.5 h-3.5 text-indigo-400" />
                 Skill Mastery & Diagnostics
               </span>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-600 dark:text-slate-400">
                 Stockfish 19 & Spaced-Repetition Memory
               </span>
             </div>
@@ -494,7 +489,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-2xl font-black text-slate-900 dark:text-white mt-1 tabular-nums">
-            {masteredThemesCount} <span className="text-xs text-slate-400 font-normal">/ 8 Themes</span>
+            {masteredThemesCount} <span className="text-xs text-slate-600 dark:text-slate-400 font-normal">/ 8 Themes</span>
           </div>
           <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Leitner Level 4+ Mastered</span>
         </div>
@@ -505,7 +500,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl font-black text-amber-500 mt-1 tabular-nums">
-            {dueThemesCount} <span className="text-xs text-slate-400 font-normal">Themes</span>
+            {dueThemesCount} <span className="text-xs text-slate-600 dark:text-slate-400 font-normal">Themes</span>
           </div>
           <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">Spaced repetition queue</span>
         </div>
@@ -529,7 +524,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
             <Activity className="w-4 h-4 text-indigo-500" />
           </div>
           <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1 tabular-nums">
-            {isSufficientData ? `${overallTrainingScore}` : '50.0'} <span className="text-xs text-slate-400 font-normal">/ 100</span>
+            {isSufficientData ? `${overallTrainingScore}` : '50.0'} <span className="text-xs text-slate-600 dark:text-slate-400 font-normal">/ 100</span>
           </div>
           <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Composite skill score</span>
         </div>
@@ -549,9 +544,9 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as TabType)}
-              className={`pb-3 px-2 sm:px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
+              className={`a11y-tab pb-3 px-2 sm:px-3 text-xs sm:text-sm font-bold flex items-center gap-2 border-b-2 transition-all whitespace-nowrap cursor-pointer ${
                 isActive
-                  ? 'border-[#81B64C] text-[#81B64C] dark:text-emerald-400'
+                  ? 'border-[#3F6B1B] text-[#3F6B1B] dark:text-emerald-400'
                   : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -560,7 +555,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
               {tab.count !== undefined && (
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                   isActive
-                    ? 'bg-[#81B64C] text-white'
+                    ? 'bg-[#047857] text-white'
                     : tab.count.toString().includes('Due')
                       ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
                       : 'bg-slate-100 dark:bg-[#1E222B] text-slate-600 dark:text-zinc-400'
@@ -587,7 +582,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Your Adaptive Mastery Roadmap</h3>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">Your Adaptive Mastery Roadmap</h2>
                     <p className="text-xs text-slate-500 dark:text-zinc-400">How the AI Coach detects your true chess habits without guessing.</p>
                   </div>
                 </div>
@@ -642,7 +637,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-slate-900 dark:text-white">
                   <Sparkles className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-sm font-bold">Personalized Training Recommendations</h3>
+                  <h2 className="text-sm font-bold">Personalized Training Recommendations</h2>
                 </div>
                 <span className="text-[10px] font-bold text-slate-700 dark:text-zinc-300 bg-slate-100 dark:bg-[#14171E] px-2.5 py-0.5 rounded border border-slate-200 dark:border-[#1E222B] uppercase tracking-wider">
                   Adaptive Learning Planner
@@ -664,7 +659,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                           PRIORITY {rec.priority}
                         </span>
                       </div>
-                      <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">{rec.title}</h4>
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">{rec.title}</h3>
                       <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-snug">{rec.reason}</p>
                     </div>
 
@@ -695,7 +690,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
           <div className="p-5 rounded-2xl bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-slate-700/60 shadow-md space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-display">Skill Competency Profile</h3>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white font-display">Skill Competency Profile</h2>
                 <span className="text-[10px] text-slate-500 dark:text-zinc-400">Deterministic training scores (0-100 scale, neutral 50)</span>
               </div>
 
@@ -706,7 +701,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                     <button
                       key={cat}
                       onClick={() => setSkillCategoryFilter(cat)}
-                      className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
+                      className={`a11y-tab px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
                         skillCategoryFilter === cat
                           ? 'bg-emerald-600 text-white font-bold shadow-xs'
                           : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
@@ -762,7 +757,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                   >
                     <div className="flex items-center justify-between text-xs font-semibold">
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-900 dark:text-white font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        <span className="text-slate-900 dark:text-white font-bold group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">
                           {skill.name}
                         </span>
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white dark:bg-[#1E222B] text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-[#262B36]">
@@ -909,9 +904,9 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                       )}
                     </div>
 
-                    <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors mb-1">
+                    <h3 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors mb-1">
                       {item.title}
-                    </h4>
+                    </h3>
                     <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-snug mb-3">
                       {item.desc}
                     </p>
@@ -998,7 +993,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                 <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" />
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Demonstrated Strengths</h3>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">Demonstrated Strengths</h2>
                   </div>
                   <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
                     {strengths.length} Confirmed
@@ -1045,7 +1040,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
                 <div className="flex items-center justify-between text-rose-500 dark:text-rose-400">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">Identified Weaknesses</h3>
+                    <h2 className="text-sm font-bold text-slate-900 dark:text-white">Identified Weaknesses</h2>
                   </div>
                   <span className="text-[10px] font-bold bg-rose-50 dark:bg-rose-950/70 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
                     {weaknesses.length} Active
@@ -1125,7 +1120,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ userProfile: localPr
           <div className="p-5 rounded-2xl bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-slate-700/60 shadow-md space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-display">Historical Skill Progression</h3>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white font-display">Historical Skill Progression</h2>
                 <span className="text-[10px] text-slate-500 dark:text-zinc-400">Snapshots captured incrementally after each Stockfish game review</span>
               </div>
               <TrendingUp className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />

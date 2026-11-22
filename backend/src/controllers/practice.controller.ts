@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { practiceService } from '../services/practice.service.js';
 import { practiceRepository } from '../repositories/practice.repository.js';
 import { playerMemoryRepository } from '../repositories/player-memory.repository.js';
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError, ForbiddenError } from '../utils/errors.js';
 
 export class PracticeController {
   async getDashboard(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -28,11 +28,20 @@ export class PracticeController {
 
   async getSession(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const userId = (req as any).user.id;
       const sessionId = req.params.sessionId as string;
+
+      // Use the same ownership boundary as practiceService.recordAttempt:
+      // sessions are keyed by PlayerProfile.id, not by the raw user id.
+      const profile = await playerMemoryRepository.getOrCreateProfile(userId);
       const session = await practiceRepository.getSessionById(sessionId);
       if (!session) {
         throw new NotFoundError(`Practice session ${sessionId} not found`);
       }
+      if (session.playerId !== profile.id) {
+        throw new ForbiddenError('You do not have access to this practice session');
+      }
+
       res.json(session);
     } catch (err) {
       next(err);

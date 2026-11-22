@@ -37,8 +37,10 @@ export class UserService {
     const profile = await userRepository.findProfileByUserId(userId);
 
     // Only expose email if the user is viewing their own profile or an admin is viewing it
+    // Email is private: only the profile owner or an admin may see it.
+    // The route requires authentication, so a missing requester is never
+    // treated as an owner/admin.
     const isOwnerOrAdmin =
-      !requestingUserId ||
       requestingUserId === user.id ||
       requestingUserRole === 'ADMIN';
 

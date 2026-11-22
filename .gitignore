@@ -40,13 +40,25 @@ lerna-debug.log*
 *.sw?
 
 # Testing & Temporary debug artifacts
+.playwright-mcp/
+**/.playwright-mcp/
 **/test-results/
 test-results/
 **/playwright-report/
 playwright-report/
 debug*
 inspect*
+
+# Local-only audit artifacts
+audit-screenshots/
+**/audit-screenshots/
+AUDIT_REPORT.md
+
+# Images (except referenced brand assets)
 *.png
+!frontend/public/zugora-logo-dark.png
+!frontend/public/zugora-logo-light.png
+
 .kilo/
 **/.kilo/
 .taste-skill/

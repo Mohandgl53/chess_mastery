@@ -90,9 +90,9 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onSelectLesson }) => {
                 Coach Recommendation
               </span>
             </div>
-            <h3 className="text-base font-black text-slate-900 dark:text-white">
+            <h2 className="text-base font-black text-slate-900 dark:text-white">
               {recommendedLesson.title}
-            </h3>
+            </h2>
             <p className="text-xs text-slate-600 dark:text-zinc-300 max-w-xl">
               {recommendedLesson.reason}
             </p>
@@ -121,9 +121,9 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onSelectLesson }) => {
                   {getModuleIcon(module.iconName)}
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                  <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
                     {module.title}
-                  </h3>
+                  </h2>
                   <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
                     {module.description}
                   </p>
@@ -154,9 +154,9 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onSelectLesson }) => {
                       </div>
                     </div>
 
-                    <h4 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-[#81B64C] transition-colors mb-1">
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-[#3F6B1B] dark:group-hover:text-[#9DD362] transition-colors mb-1">
                       {lesson.title}
-                    </h4>
+                    </h3>
                     <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-snug mb-3">
                       {lesson.description}
                     </p>
@@ -174,7 +174,7 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onSelectLesson }) => {
                         {lesson.progressPercent}% in progress
                       </span>
                     ) : (
-                      <span className="text-slate-400 dark:text-zinc-500 text-[11px] font-medium">
+                      <span className="text-slate-600 dark:text-zinc-400 text-[11px] font-medium">
                         {lesson.totalSteps} steps
                       </span>
                     )}

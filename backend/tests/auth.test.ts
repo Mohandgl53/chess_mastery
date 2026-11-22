@@ -39,7 +39,18 @@ const userBEmail = `userb-${suffix}@chesscoach.test`;
 const userBPassword = 'AnotherPassword456!';
 
 describe('Phase 3B Authentication Tests', () => {
+  const originalEnv = process.env.REQUIRE_EMAIL_VERIFICATION;
+
+  beforeAll(() => {
+    process.env.REQUIRE_EMAIL_VERIFICATION = 'false';
+  });
+
   afterAll(async () => {
+    if (originalEnv !== undefined) {
+      process.env.REQUIRE_EMAIL_VERIFICATION = originalEnv;
+    } else {
+      delete process.env.REQUIRE_EMAIL_VERIFICATION;
+    }
     // Clean up test users
     await prisma.user.deleteMany({
       where: { email: { in: [testUserEmail, userBEmail] } }

@@ -33,7 +33,9 @@ export interface MoveRecord {
   explanation?: string;
   timeSpentSeconds?: number;
   theme?: string;
+  /** White-relative centipawn evaluation before the move (100 cp = 1 pawn). */
   evalBefore?: number;
+  /** Centipawns lost by the moving side; positive means a worse move. */
   evalDelta?: number;
   principalVariation?: string[];
 }

@@ -221,6 +221,9 @@ model PlayerProfile {
 model Game {
   id                   String             @id @default(cuid())
   userId               String
+  // Client-supplied stable key (SavedGame.id) used to deduplicate save retries.
+  // NULL is allowed for legacy rows and for direct/server-side game creation.
+  idempotencyKey       String?
   opponentName         String
   opponentType         OpponentType       @default(AI)
   playerColor          PlayerColor        @default(WHITE)
@@ -240,6 +243,7 @@ model Game {
   analysis             GameAnalysis?
   learningEvidence     LearningEvidence[]
 
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
 }
 

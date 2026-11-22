@@ -1,26 +1,20 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Chess, Square } from 'chess.js';
 import confetti from 'canvas-confetti';
 import { PlayerProfile } from '../types/user';
 import { playerApi, PlayerProgressData } from '../services/api/playerApi';
 import { learningService } from '../services/learningService';
-import { useAuth } from '../auth/AuthProvider';
 import { ChessBoard } from '../components/chess/ChessBoard';
 import { sounds } from '../utils/soundEffects';
 import { PieceType } from '../types/chess';
 import {
   Play,
-  BookOpen,
   Zap,
   Target,
-  ArrowRight,
-  CheckCircle2,
   Flame,
   ChevronRight,
   RotateCcw,
-  Lightbulb,
   Award,
-  Swords,
   Trophy,
   Check,
   Star,
@@ -38,7 +32,6 @@ interface HomePageProps {
 const HERO_PUZZLE_FEN = 'r1b1kb1r/pp3ppp/2n1pn2/1N1p4/3P4/4PN2/PP3PPP/R1BQKB1R w KQkq - 0 8';
 
 export const HomePage: React.FC<HomePageProps> = ({ userProfile, onNavigate }) => {
-  const { user } = useAuth();
   const isApiMode = import.meta.env.VITE_DATA_MODE === 'api';
   const [progressData, setProgressData] = useState<PlayerProgressData | null>(null);
 
@@ -58,7 +51,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userProfile, onNavigate }) =
     percent: 0,
     isUnstarted: true
   });
-  const [loadingLessons, setLoadingLessons] = useState(true);
+  const [_loadingLessons, setLoadingLessons] = useState(true);
 
   // ---------------------------------------------------------------------------
   // Interactive Master Challenge Arena State
@@ -228,7 +221,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userProfile, onNavigate }) =
 
   const userLevel = Math.max(1, Math.floor(userProfile.rating / 100));
   const eloToNextLevel = (userLevel * 100 + 100) - userProfile.rating;
-  const levelProgress = Math.min(100, Math.max(0, 100 - eloToNextLevel));
+  const _levelProgress = Math.min(100, Math.max(0, 100 - eloToNextLevel));
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 text-slate-900 dark:text-slate-100 transition-colors duration-200">
@@ -278,14 +271,14 @@ export const HomePage: React.FC<HomePageProps> = ({ userProfile, onNavigate }) =
         <div className="flex flex-wrap items-center gap-2.5 shrink-0 relative">
           <button
             onClick={() => onNavigate('/play')}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
+            className="a11y-tap px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
           >
             <Play className="w-3.5 h-3.5 fill-white" />
             <span>Play vs Bot</span>
           </button>
           <button
             onClick={() => onNavigate('/puzzles')}
-            className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/15 transition-all flex items-center gap-2 cursor-pointer"
+            className="a11y-tap px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs border border-white/15 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Zap className="w-3.5 h-3.5 text-amber-400" />
             <span>Daily Puzzle</span>
@@ -300,14 +293,14 @@ export const HomePage: React.FC<HomePageProps> = ({ userProfile, onNavigate }) =
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left: Tactical Context */}
           <div className="lg:col-span-5 space-y-5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#81B64C]/15 border border-[#81B64C]/30 text-[#588329] dark:text-[#9DD362] text-[11px] font-black uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#81B64C]/15 border border-[#81B64C]/30 text-[#3F6B1B] dark:text-[#9DD362] text-[11px] font-black uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-[#81B64C]" />
               <span>Daily Coach Masterclass</span>
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-display tracking-tight leading-tight">
               Spot the blunder. <br />
-              <span className="text-[#81B64C] dark:text-[#9DD362]">Calculate the refutation.</span>
+              <span className="text-[#3F6B1B] dark:text-[#9DD362]">Calculate the refutation.</span>
             </h2>
 
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
@@ -321,7 +314,7 @@ export const HomePage: React.FC<HomePageProps> = ({ userProfile, onNavigate }) =
                   <span className="w-2.5 h-2.5 rounded-full bg-[#81B64C] animate-pulse" />
                   Coach Sophia (AI Grandmaster)
                 </span>
-                <span className="font-black text-[#588329] dark:text-[#9DD362] tabular-nums">
+                <span className="font-black text-[#3F6B1B] dark:text-[#9DD362] tabular-nums">
                   {demoState === 'initial' ? '+3.8 White Winning' : demoState === 'forked' ? '+5.2 Material Fork' : '+7.4 Decisive'}
                 </span>
               </div>
@@ -751,10 +744,12 @@ export const HomePage: React.FC<HomePageProps> = ({ userProfile, onNavigate }) =
             >
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={(e) => toggleChecklist(item.id, e)}
-                  className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+                  aria-label={`${item.done ? 'Mark incomplete' : 'Mark complete'}: ${item.task}`}
+                  className={`relative w-5 h-5 rounded-md flex items-center justify-center transition-colors cursor-pointer before:absolute before:-inset-3 before:content-[''] ${
                     item.done
-                      ? 'bg-[#81B64C] text-white font-bold shadow-2xs'
+                      ? 'bg-[#047857] text-white font-bold shadow-2xs'
                       : 'border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#1A1F2B] hover:border-[#81B64C]'
                   }`}
                 >

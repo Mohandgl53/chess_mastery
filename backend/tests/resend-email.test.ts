@@ -67,7 +67,7 @@ describe('Resend Email Integration & Verification Security Suite', () => {
         (e) => e.to === email && e.type === 'VERIFICATION'
       );
       expect(sentEmail).toBeDefined();
-      expect(sentEmail!.subject).toBe('Verify your Chess Mastery account');
+      expect(sentEmail!.subject).toBe('Verify your Zugora account');
     });
   });
 
@@ -334,6 +334,12 @@ describe('Resend Email Integration & Verification Security Suite', () => {
         .post('/api/auth/register')
         .send({ email, displayName: 'PW Reset User', password: testPassword });
 
+      // Verify the user first so they are an active, verified account before requesting reset
+      await prisma.user.update({
+        where: { email },
+        data: { emailVerified: true }
+      });
+
       // Request password reset
       const forgotRes = await request(app)
         .post('/api/auth/forgot-password')
@@ -346,7 +352,7 @@ describe('Resend Email Integration & Verification Security Suite', () => {
         (e) => e.to === email && e.type === 'PASSWORD_RESET'
       );
       expect(resetEmail).toBeDefined();
-      expect(resetEmail!.subject).toBe('Reset your Chess Mastery password');
+      expect(resetEmail!.subject).toBe('Reset your Zugora password');
 
       const rawResetToken = forgotRes.body.data.devResetToken;
       expect(rawResetToken).toBeDefined();

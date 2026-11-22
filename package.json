@@ -16,5 +16,8 @@
     "prisma:migrate": "npm --prefix backend run prisma:migrate:deploy",
     "prisma:seed": "npm --prefix backend run prisma:seed",
     "knowledge:seed": "npm --prefix backend run knowledge:seed"
+  },
+  "devDependencies": {
+    "agentation": "^3.1.2"
   }
 }

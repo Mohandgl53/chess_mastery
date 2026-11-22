@@ -45,9 +45,10 @@ self.onmessage = function (e) {
   }
 };
 
-// stockfish-19-lite-single.js exports `t`, calling `t()` returns the Emscripten factory `e`
+// stockfish-19-lite-single.js exports a MODULARIZE factory `t`.
+// Calling t(config) returns a Promise resolving to the engine module.
 var factory = module.exports;
-var initFn = typeof factory === 'function' ? factory() : null;
+var initFn = typeof factory === 'function' ? factory : null;
 
 if (typeof initFn === 'function') {
   initFn(sfConfig)

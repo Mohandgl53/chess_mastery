@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import {
   gameRepository,
   FullGameWithDetails,
@@ -57,18 +59,44 @@ export class GameService {
   }
 
   async createGame(userId: string, input: CreateGameInput): Promise<FullGameWithDetails> {
-    // 1. Authoritative chess move validation with chess.js
+    // 1. Resolve the idempotency key. The client normally sends SavedGame.id so
+    //    a retry of the same save reuses the exact same key.
+    const idempotencyKey = input.idempotencyKey?.trim() || crypto.randomUUID();
+
+    // 2. Authoritative chess move validation with chess.js
     const replay = validateChessMoves(input.moves, input.finalFen, input.pgn);
 
-    // 2. Transactionally save game, moves, and optional analysis metadata
-    const createdGame = await gameRepository.createTransactional(
-      userId,
-      input,
-      replay.calculatedFinalFen,
-      replay.verifiedPgn
-    );
+    // 3. Fast path: an already-saved retry returns the original game without
+    //    touching stats/rating or player-memory learning.
+    const existing = await gameRepository.findByIdempotencyKey(userId, idempotencyKey);
+    if (existing) {
+      return existing;
+    }
 
-    // 3. Incrementally update player memory if analysis or classified moves are present
+    // 4. Transactionally save game, moves, and optional analysis metadata.
+    //    Stats/rating are recalculated from game rows inside that transaction.
+    let createdGame: FullGameWithDetails;
+    try {
+      createdGame = await gameRepository.createTransactional(
+        userId,
+        { ...input, idempotencyKey },
+        replay.calculatedFinalFen,
+        replay.verifiedPgn
+      );
+    } catch (err) {
+      // Concurrent duplicate: the unique (userId, idempotencyKey) index makes
+      // exactly one writer win. The loser's transaction is rolled back, so no
+      // stats/rating mutation survives; return the winner's row instead.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const winner = await gameRepository.findByIdempotencyKey(userId, idempotencyKey);
+        if (winner) {
+          return winner;
+        }
+      }
+      throw err;
+    }
+
+    // 5. Incrementally update player memory if analysis or classified moves are present
     if (createdGame.analysis || createdGame.moves.some((m) => m.classification)) {
       try {
         await playerMemoryService.processCompletedGame(userId, createdGame.id);

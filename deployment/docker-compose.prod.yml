@@ -1,17 +1,17 @@
-version: '3.8'
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
     restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: chesscoach_user
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-replace_with_secure_production_password}
-      POSTGRES_DB: chesscoach
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in deployment/.env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deployment/.env}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in deployment/.env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chesscoach_user -d chesscoach"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?Set POSTGRES_USER in deployment/.env} -d ${POSTGRES_DB:?Set POSTGRES_DB in deployment/.env}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,37 +24,47 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://chesscoach_user:${DB_PASSWORD:-replace_with_secure_production_password}@postgres:5432/chesscoach
-      CLIENT_URL: ${CLIENT_URL:-http://localhost}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-256410331325-2ckb0m93ekb1q13beblu9tn8cvj6p3t1.apps.googleusercontent.com}
-      JWT_SECRET: ${JWT_SECRET:-chess_mastery_secure_jwt_secret_key_change_in_production_2026}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in deployment/.env}
+      CLIENT_URL: ${CLIENT_URL:?Set CLIENT_URL to your public HTTPS origin}
+      PUBLIC_CLIENT_URL: ${PUBLIC_CLIENT_URL:?Set PUBLIC_CLIENT_URL to your public HTTPS origin}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in deployment/.env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET to a unique 32+ character secret}
       LLM_PROVIDER: ${LLM_PROVIDER:-groq}
-      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-llama-3.3-70b-versatile}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-mock}
-      RESEND_API_KEY: ${RESEND_API_KEY}
-      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-smtp}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Zugora}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-Zugora <onboarding@resend.dev>}
       REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-true}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 30s
 
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-256410331325-2ckb0m93ekb1q13beblu9tn8cvj6p3t1.apps.googleusercontent.com}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in deployment/.env}
         VITE_API_URL: ${VITE_API_URL:-/api}
     restart: always
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - backend
 

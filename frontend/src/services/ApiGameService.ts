@@ -2,6 +2,7 @@ import { IGameService } from './gameService';
 import { SavedGame } from '../types/game';
 import {
   gameApi,
+  generateIdempotencyKey,
   mapBackendGameToSavedGame,
   mapSavedGameToCreateGameDto
 } from './api/gameApi';
@@ -39,7 +40,13 @@ export class ApiGameService implements IGameService {
 
   async saveGame(game: SavedGame): Promise<void> {
     try {
-      const payload = mapSavedGameToCreateGameDto(game);
+      // Keep a stable key on the game object so a retry of this exact save
+      // (including after a failed request) reuses the same idempotency key.
+      const idempotencyKey = game.id?.trim() || generateIdempotencyKey();
+      if (!game.id?.trim()) {
+        game.id = idempotencyKey;
+      }
+      const payload = mapSavedGameToCreateGameDto(game, idempotencyKey);
       await gameApi.createGame(payload);
     } catch (err) {
       console.error('[ApiGameService] Failed to persist game to server:', err);

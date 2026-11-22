@@ -61,7 +61,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         <div className="flex items-center gap-1.5">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2533] transition-colors"
+            className="p-2 min-h-[44px] min-w-[44px] rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2533] transition-colors"
             aria-label="Toggle theme"
           >
             {theme === 'light' ? (
@@ -73,7 +73,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2533] transition-colors"
+            className="p-2 min-h-[44px] min-w-[44px] rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1F2533] transition-colors"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -84,13 +84,13 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex">
-          <div className="w-72 bg-white dark:bg-[#151922] border-r border-slate-200 dark:border-[#242A36] h-full p-4 flex flex-col justify-between shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="w-72 bg-white dark:bg-[#151922] border-r border-slate-200 dark:border-[#242A36] h-full p-4 flex flex-col justify-between gap-4 overflow-y-auto shadow-2xl animate-in slide-in-from-left duration-200">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-[#242A36] mb-4">
                 <div onClick={() => handleMobileNav('/')} className="cursor-pointer">
                   <ChessMasteryLogo size="sm" showText={true} />
                 </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+                <button onClick={() => setMobileMenuOpen(false)} aria-label="Close navigation menu" className="a11y-icon-button text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -109,9 +109,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                   <button
                     key={item.route}
                     onClick={() => handleMobileNav(item.route)}
-                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                    className={`a11y-tab w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
                       currentRoute === item.route
-                        ? 'bg-[#81B64C]/15 text-[#588329] dark:bg-[#81B64C]/20 dark:text-[#9DD362] border-l-3 border-[#81B64C]'
+                        ? 'bg-[#81B64C]/15 text-[#3F6B1B] dark:bg-[#81B64C]/20 dark:text-[#9DD362] border-l-3 border-[#81B64C]'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-[#1D222E]'
                     }`}
                   >
@@ -151,7 +151,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
                 await logout();
                 onNavigate('/landing');
               }}
-              className="w-full mt-2 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200/60 dark:border-red-800/40"
+              className="a11y-tab w-full mt-2 flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-200/60 dark:border-red-800/40"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
@@ -183,7 +183,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
               onClick={() => handleMobileNav(tab.route)}
               className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors cursor-pointer ${
                 active
-                  ? 'text-[#689E39] dark:text-[#81B64C]'
+                  ? 'text-[#3F6B1B] dark:text-[#9DD362]'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >

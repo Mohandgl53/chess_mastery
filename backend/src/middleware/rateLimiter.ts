@@ -14,7 +14,12 @@ export interface RateLimiterOptions {
   skipInTest?: boolean;
 }
 
-export function createRateLimiter(options: RateLimiterOptions = {}) {
+export type RateLimiterMiddleware =
+  ((req: Request, res: Response, next: NextFunction) => void) & {
+    reset: () => void;
+  };
+
+export function createRateLimiter(options: RateLimiterOptions = {}): RateLimiterMiddleware {
   const limit = options.limit ?? 30;
   const windowMs = options.windowMs ?? 60_000;
   const skipInTest = options.skipInTest ?? true;
@@ -32,9 +37,12 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
   }, 120_000);
   cleanupTimer.unref();
 
-  return function rateLimiter(req: Request, res: Response, next: NextFunction): void {
+  const middleware = ((req: Request, res: Response, next: NextFunction): void => {
+    const enforceInTest =
+      env.NODE_ENV === 'test' && req.headers['x-test-rate-limit'] !== undefined;
+
     // In test environment, skip unless explicitly testing rate limiter
-    if (env.NODE_ENV === 'test' && skipInTest && !req.headers['x-test-rate-limit']) {
+    if (env.NODE_ENV === 'test' && skipInTest && !enforceInTest) {
       return next();
     }
 
@@ -49,6 +57,11 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
         ? `user:${req.user.id}`
         : `ip:${req.ip || req.socket.remoteAddress || 'unknown'}`;
 
+    // Tests can temporarily lower the limit without changing production config.
+    const overrideRaw = enforceInTest ? req.headers['x-test-rate-limit-limit'] : undefined;
+    const override = overrideRaw === undefined ? NaN : Number(overrideRaw);
+    const effectiveLimit = Number.isInteger(override) && override > 0 ? override : limit;
+
     const now = Date.now();
     let record = tracker.get(key);
     if (!record) {
@@ -59,21 +72,21 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
     // Retain only requests within sliding window
     record.timestamps = record.timestamps.filter((ts) => now - ts < windowMs);
 
-    const remaining = Math.max(0, limit - record.timestamps.length);
+    const remaining = Math.max(0, effectiveLimit - record.timestamps.length);
     const resetTime = record.timestamps.length > 0
       ? Math.ceil((record.timestamps[0] + windowMs - now) / 1000)
       : Math.ceil(windowMs / 1000);
 
     // Standard RFC RateLimit headers
-    res.setHeader('RateLimit-Limit', limit.toString());
+    res.setHeader('RateLimit-Limit', effectiveLimit.toString());
     res.setHeader('RateLimit-Remaining', Math.max(0, remaining - 1).toString());
     res.setHeader('RateLimit-Reset', resetTime.toString());
 
-    if (record.timestamps.length >= limit) {
+    if (record.timestamps.length >= effectiveLimit) {
       res.setHeader('Retry-After', resetTime.toString());
       return next(
         new AppError(
-          options.message || `Rate limit exceeded: maximum ${limit} requests per ${windowMs / 1000}s. Please wait before retrying.`,
+          options.message || `Rate limit exceeded: maximum ${effectiveLimit} requests per ${windowMs / 1000}s. Please wait before retrying.`,
           429,
           'RATE_LIMIT_EXCEEDED'
         )
@@ -82,7 +95,10 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
 
     record.timestamps.push(now);
     next();
-  };
+  }) as RateLimiterMiddleware;
+
+  middleware.reset = () => tracker.clear();
+  return middleware;
 }
 
 /**

@@ -8,11 +8,9 @@ import {
   ArrowLeft,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
   Sparkles,
   ArrowRight,
-  RotateCcw,
-  Trophy
+  RotateCcw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../auth/AuthProvider';
@@ -96,8 +94,7 @@ export const LessonPage: React.FC<LessonPageProps> = ({ lessonId, onBackToCurric
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
 
         if (res.isLessonCompleted) {
-          lesson.completed = true;
-          lesson.progressPercent = 100;
+          setLesson((prev) => prev ? { ...prev, completed: true, progressPercent: 100 } : prev);
           await refreshProfile();
         }
       } else {
@@ -135,8 +132,7 @@ export const LessonPage: React.FC<LessonPageProps> = ({ lessonId, onBackToCurric
       confetti({ particleCount: 40, spread: 50, origin: { y: 0.7 } });
 
       if (res.isLessonCompleted) {
-        lesson.completed = true;
-        lesson.progressPercent = 100;
+        setLesson((prev) => prev ? { ...prev, completed: true, progressPercent: 100 } : prev);
         await refreshProfile();
       }
     } else {
@@ -160,8 +156,7 @@ export const LessonPage: React.FC<LessonPageProps> = ({ lessonId, onBackToCurric
         stepNumber: currentStep.stepNumber
       });
       if (res.isLessonCompleted) {
-        lesson.completed = true;
-        lesson.progressPercent = 100;
+        setLesson((prev) => prev ? { ...prev, completed: true, progressPercent: 100 } : prev);
         await refreshProfile();
       }
       onBackToCurriculum();

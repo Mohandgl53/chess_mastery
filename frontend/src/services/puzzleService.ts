@@ -1,7 +1,110 @@
-import { Puzzle, PuzzleTheme } from '../types/puzzle';
+import { Puzzle, PuzzleHint, PuzzleMove, PuzzleTheme } from '../types/puzzle';
 import { MASTERCLASS_PUZZLES } from '../data/masterclassPuzzles';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? '/api' : 'http://localhost:5000/api');
+
+/** A row from the backend's authoritative Puzzle table (`GET /api/puzzles/library`). */
+interface LibraryPuzzleRow {
+  id: string;
+  title: string;
+  theme: string;
+  rating: number;
+  difficulty: string;
+  fen: string;
+  playerColor: string;
+  solutionMoves: unknown;
+  hints: unknown;
+  tacticalExplanation: string;
+  coachInsight?: string | null;
+}
+
+const LIBRARY_THEME_MAP: Record<string, PuzzleTheme> = {
+  FORK: 'Fork',
+  PIN: 'Pin',
+  SKEWER: 'Skewer',
+  DISCOVERED_ATTACK: 'Discovered Attack',
+  BACK_RANK: 'Back-Rank Mate',
+  BACK_RANK_MATE: 'Back-Rank Mate',
+  HANGING_PIECE: 'Hanging Piece',
+  LATE_CASTLING: 'Late Castling',
+  CENTER_CONTROL: 'Center Control',
+  OPEN_FILE: 'Open File',
+  DEFLECTION: 'Deflection',
+  REMOVING_DEFENDER: 'Removing Defender',
+  SMOTHERED_MATE: 'Smothered Mate',
+  PAWN_ENDGAME: 'Pawn Endgame',
+  GREEK_GIFT: 'Greek Gift',
+  QUEEN_SACRIFICE: 'Queen Sacrifice'
+};
+
+function normalizeMoves(value: unknown): PuzzleMove[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((move): move is PuzzleMove => {
+    if (!move || typeof move !== 'object') return false;
+    const m = move as Partial<PuzzleMove>;
+    return typeof m.from === 'string' && typeof m.to === 'string' && typeof m.san === 'string';
+  }).map((m) => {
+    const response = m.response;
+    const validResponse = response &&
+      typeof response.from === 'string' &&
+      typeof response.to === 'string' &&
+      typeof response.san === 'string'
+      ? response
+      : undefined;
+    return { from: m.from, to: m.to, san: m.san, ...(validResponse ? { response: validResponse } : {}) };
+  });
+}
+
+function normalizeHints(value: unknown, themeText: string): PuzzleHint[] {
+  if (!Array.isArray(value)) return [];
+  const hints = value.filter((hint): hint is PuzzleHint => {
+    if (!hint || typeof hint !== 'object') return false;
+    const h = hint as Partial<PuzzleHint>;
+    return typeof h.title === 'string' && typeof h.description === 'string' &&
+      [1, 2, 3].includes(Number(h.level));
+  }).map((h) => ({
+    level: Number(h.level) as 1 | 2 | 3,
+    title: h.title,
+    description: h.description,
+    ...(Array.isArray(h.highlightSquares) ? { highlightSquares: h.highlightSquares } : {})
+  }));
+  if (hints.length > 0) return hints;
+  return [
+    { level: 1, title: 'Look at the position', description: `Identify the ${themeText.toLowerCase()} idea.` },
+    { level: 2, title: 'Find the forcing move', description: 'Look for checks, captures and threats.' },
+    { level: 3, title: 'Calculate the line', description: 'Verify each reply before committing.' }
+  ];
+}
+
+function fromLibraryRow(row: LibraryPuzzleRow): Puzzle | null {
+  if (!row || typeof row.id !== 'string' || typeof row.fen !== 'string' || !row.fen) return null;
+  const solutionMoves = normalizeMoves(row.solutionMoves);
+  if (solutionMoves.length === 0) return null;
+
+  const theme = LIBRARY_THEME_MAP[row.theme] ?? 'Tactics';
+  const difficulty = ['Easy', 'Medium', 'Hard'].includes(row.difficulty)
+    ? row.difficulty as Puzzle['difficulty']
+    : 'Medium';
+
+  return {
+    // Namespaced to avoid collisions with the bundled masterclass catalog, whose
+    // overlapping IDs sometimes contain different solutions.
+    id: `lib-${row.id}`,
+    title: row.title,
+    rating: Number.isFinite(row.rating) ? row.rating : 1000,
+    theme,
+    themeDescription: `${theme} tactical pattern from the verified mastery library`,
+    difficulty,
+    fen: row.fen,
+    playerColor: row.playerColor === 'b' ? 'b' : 'w',
+    solutionMoves,
+    hints: normalizeHints(row.hints, theme),
+    tacticalExplanation: row.tacticalExplanation || 'A forcing tactic from the verified puzzle library.',
+    coachInsight: row.coachInsight || row.tacticalExplanation || '',
+    source: 'Mastery Library'
+  };
+}
 
 export interface IPuzzleService {
   getPuzzles(): Promise<Puzzle[]>;
@@ -24,13 +127,54 @@ const RUSH_HIGH_SCORE_KEY = 'chess_mastery_rush_high_score';
 
 export class EnhancedPuzzleService implements IPuzzleService {
   private puzzles: Puzzle[];
+  private libraryLoaded = false;
+  private libraryPromise: Promise<void> | null = null;
 
   constructor() {
     this.puzzles = [...MASTERCLASS_PUZZLES];
   }
 
   async getPuzzles(): Promise<Puzzle[]> {
+    if (this.libraryLoaded) return this.puzzles;
+
+    // StrictMode mounts effects twice; share one in-flight request across callers.
+    if (!this.libraryPromise) {
+      this.libraryPromise = this.loadLibrary()
+        .catch(() => {
+          // Network/timeout/parse failures keep the bundled offline catalog usable.
+        })
+        .finally(() => {
+          this.libraryPromise = null;
+        });
+    }
+    await this.libraryPromise;
+
     return this.puzzles;
+  }
+
+  private async loadLibrary(): Promise<void> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/puzzles/library`, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!response.ok) return;
+
+    const payload = await response.json() as { success?: boolean; puzzles?: LibraryPuzzleRow[] };
+    const rows = Array.isArray(payload.puzzles) ? payload.puzzles : [];
+    const library = rows.map(fromLibraryRow).filter((p): p is Puzzle => p !== null);
+    if (library.length === 0) return;
+
+    const knownIds = new Set(this.puzzles.map((p) => p.id));
+    this.puzzles = [
+      ...MASTERCLASS_PUZZLES,
+      ...library.filter((p) => !knownIds.has(p.id))
+    ].sort((a, b) => a.rating - b.rating);
+    this.libraryLoaded = true;
   }
 
   async getPuzzleById(id: string): Promise<Puzzle | undefined> {
@@ -56,6 +200,9 @@ export class EnhancedPuzzleService implements IPuzzleService {
       SMOTHERED_MATE: 'Smothered Mate',
       ENDGAME_TECHNIQUE: 'Pawn Endgame',
       HANGING_PIECE: 'Hanging Piece',
+      LATE_CASTLING: 'Late Castling',
+      CENTER_CONTROL: 'Center Control',
+      OPEN_FILE: 'Open File',
       GREEK_GIFT: 'Greek Gift'
     };
 

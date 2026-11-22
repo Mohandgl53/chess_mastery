@@ -17,7 +17,7 @@ Chess Mastery/
 │   │   ├── services/          # RAG, LLM providers (Groq/Gemini), Engine, Player Memory
 │   │   ├── middlewares/       # Auth session guard, validation
 │   │   └── server.ts          # Express API server entry
-│   ├── tests/                 # Comprehensive Vitest suite (228+ unit & integration tests)
+│   ├── tests/                 # Comprehensive Vitest suite (331 unit & integration tests)
 │   ├── .env.example           # Backend environment configuration template
 │   └── package.json
 │
@@ -86,7 +86,9 @@ From the root directory:
 # Generate Prisma client and apply migrations
 npm run prisma:migrate
 
-# Seed curriculum, lessons, tactical puzzles, and dev user (dev@chesscoach.local / test123)
+# Seed curriculum, lessons, tactical puzzles, and dev user
+# Set DEV_SEED_PASSWORD=test123 and REQUIRE_EMAIL_VERIFICATION=false in backend/.env first
+# if you need to sign in as dev@chesscoach.local / test123 locally
 npm run prisma:seed
 
 # Seed the RAG chess knowledge base (openings, endgame principles, tactical themes)
@@ -114,7 +116,7 @@ npm run dev:frontend
 The platform features comprehensive test coverage across both unit, integration, and end-to-end layers:
 
 ```bash
-# Run all unit & integration tests (Backend: 228 tests, Frontend: 48 tests)
+# Run all unit & integration tests (Backend: 331 tests, Frontend: 87 tests)
 npm test
 
 # Run backend tests only
@@ -141,6 +143,8 @@ This builds and launches:
 1. `backend`: Express TypeScript API with auto-applied migrations.
 2. `frontend`: Multi-stage static build served with NGINX reverse-proxying `/api` requests to backend.
 3. `postgres`: Production PostgreSQL database with persistent volume.
+
+Production boot fails closed unless `JWT_SECRET` is a unique value of at least 32 characters and `CLIENT_URL` / `PUBLIC_CLIENT_URL` are real HTTPS URLs; configure these in `deployment/.env` before starting the stack.
 
 ---
 

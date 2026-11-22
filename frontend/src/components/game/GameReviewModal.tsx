@@ -3,8 +3,8 @@ import { PostGameAnalysis, PieceColor } from '../../types/game';
 import { SavedGame } from '../../types/game';
 import {
   Trophy, Award, CheckCircle2, AlertTriangle, AlertCircle, RefreshCw,
-  BarChart2, X, Brain, Zap, Target, ArrowRight, BookOpen, Play, Star,
-  TrendingUp, Shield, Copy, Check, Swords, Compass, Layers
+  BarChart2, X, Brain, Zap, Target, BookOpen, Play, Star,
+  TrendingUp, Shield, Copy, Check, Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -196,7 +196,7 @@ export const GameReviewModal: React.FC<GameReviewModalProps> = ({
     if (isOpen && isWin) {
       try {
         confetti({ particleCount: 90, spread: 75, origin: { y: 0.5 } });
-      } catch (e) {
+      } catch {
         // Safe fallback if confetti isn't supported
       }
     }
@@ -210,12 +210,6 @@ export const GameReviewModal: React.FC<GameReviewModalProps> = ({
     : playerAccuracy >= 65
     ? 'text-amber-400'
     : 'text-rose-400';
-
-  const accuracyBadgeBg = playerAccuracy >= 80
-    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-    : playerAccuracy >= 65
-    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-    : 'bg-rose-500/15 border-rose-500/30 text-rose-300';
 
   const handleCopyClipboard = (text: string | undefined, type: 'pgn' | 'fen') => {
     if (!text) return;

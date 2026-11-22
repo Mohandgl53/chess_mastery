@@ -2,6 +2,7 @@ import React from 'react';
 import { PieceColor, PieceType } from '../../types/chess';
 import { CapturedPieces } from '../chess/CapturedPieces';
 import { Bot, User, Clock } from 'lucide-react';
+import { formatClockTime } from '../../utils/gameRules';
 
 interface PlayerCardProps {
   name: string;
@@ -34,13 +35,6 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   avatar,
   className = ''
 }) => {
-  const formatTime = (seconds?: number) => {
-    if (seconds === undefined) return null;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const isLowTime = timeRemainingSeconds !== undefined && timeRemainingSeconds < 30;
 
   return (
@@ -111,7 +105,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           }`}
         >
           <Clock className={`w-3 h-3 ${isActiveTurn ? 'text-white' : 'text-slate-500 dark:text-zinc-400'}`} />
-          <span>{formatTime(timeRemainingSeconds)}</span>
+          <span>{formatClockTime(timeRemainingSeconds)}</span>
         </div>
       )}
     </div>

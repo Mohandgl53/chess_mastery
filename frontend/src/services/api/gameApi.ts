@@ -1,4 +1,4 @@
-import { Chess, Square } from 'chess.js';
+import { Chess } from 'chess.js';
 import { apiClient } from './client';
 import { SavedGame, GameResult } from '../../types/game';
 import { MoveRecord, SquareName, PieceType, PieceColor, MoveClassification } from '../../types/chess';
@@ -61,7 +61,17 @@ export interface PaginatedBackendGames {
   };
 }
 
+/** Stable per-client key so retried saves cannot create duplicate games. */
+export function generateIdempotencyKey(): string {
+  const cryptoRef = typeof globalThis !== 'undefined' ? globalThis.crypto : undefined;
+  if (cryptoRef?.randomUUID) {
+    return `game-${cryptoRef.randomUUID()}`;
+  }
+  return `game-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export interface CreateGameDto {
+  idempotencyKey?: string;
   opponentName: string;
   opponentType?: 'AI' | 'HUMAN';
   playerColor?: 'WHITE' | 'BLACK';
@@ -224,7 +234,13 @@ export function mapBackendGameToSavedGame(bg: BackendGameDto): SavedGame {
 }
 
 // Convert Frontend SavedGame to Backend CreateGameDto
-export function mapSavedGameToCreateGameDto(game: SavedGame): CreateGameDto {
+export function mapSavedGameToCreateGameDto(
+  game: SavedGame,
+  idempotencyKeyOverride?: string
+): CreateGameDto {
+  // Reuse SavedGame.id when present so retries share the same key.
+  const idempotencyKey =
+    idempotencyKeyOverride?.trim() || game.id?.trim() || generateIdempotencyKey();
   const isWhite = game.analysis?.playerColor === 'w' || !game.whitePlayer.toLowerCase().includes('coach');
   const opponentName = isWhite ? game.blackPlayer : game.whitePlayer;
 
@@ -254,6 +270,7 @@ export function mapSavedGameToCreateGameDto(game: SavedGame): CreateGameDto {
   // GameMove stores per-ply results.
   // GameAnalysis stores whole-game summary info and engineVersion without duplicating per-move payloads.
   return {
+    idempotencyKey,
     opponentName: opponentName || 'Stockfish AI',
     opponentType: 'AI',
     playerColor: isWhite ? 'WHITE' : 'BLACK',

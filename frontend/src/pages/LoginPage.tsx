@@ -31,7 +31,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) => {
-  const { login, googleLogin } = useAuth();
+  const { login } = useAuth();
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -151,48 +151,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
     }
   };
 
-  const handleSocialClick = async (provider: string) => {
-    if (provider === 'Google') {
-      try {
-        setIsLoading(true);
-        setError(null);
-        setSuccessMessage(null);
-        const googleObj = (window as any).google;
-        if (googleObj?.accounts?.id) {
-          googleObj.accounts.id.prompt();
-          return;
-        }
-        setError('Google Sign-In is enabled on the backend. Please configure your Google Client ID or use email login.');
-      } catch (err: any) {
-        setError(err?.message || 'Google sign-in failed');
-      } finally {
-        setIsLoading(false);
-      }
+  const handleForgotPassword = () => {
+    if (email.trim()) {
+      onNavigate(`/forgot-password?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     } else {
-      setError(`${provider} sign-in is enabled for linked accounts. Please sign in with your email or register.`);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!email.trim()) {
-      setError('Please enter your email in the field above, then click Forgot password.');
-      return;
-    }
-    try {
-      setIsLoading(true);
-      setError(null);
-      setSuccessMessage(null);
-      const res = await authApi.forgotPassword(email);
-      setSuccessMessage(res.message);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to request password reset link.');
-    } finally {
-      setIsLoading(false);
+      onNavigate('/forgot-password');
     }
   };
 
   // The reusable login card: tailored for mobile compactness (< lg) and large grandeur on desktop (≥ lg)
-  const renderLoginCard = (isMobile = false) => (
+  const renderLoginCard = (isMobile = false, variant: 'mobile' | 'desktop' = isMobile ? 'mobile' : 'desktop') => (
     <div
       className={`bg-white rounded-[28px] sm:rounded-[36px] shadow-[0_30px_85px_rgba(0,0,0,0.28)] border border-stone-200/90 w-full transition-all ${
         isMobile
@@ -250,7 +218,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
       </div>
 
       {/* Login Form */}
-      <form id="login-form" onSubmit={handleSubmit} className="space-y-3 sm:space-y-4" noValidate>
+      <form id={`login-form-${variant}`} onSubmit={handleSubmit} className="space-y-3 sm:space-y-4" noValidate>
         {/* Error Alert */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-2">
@@ -264,7 +232,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
                   type="button"
                   onClick={handleResendVerification}
                   disabled={isResendingVerification}
-                  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-3 py-1.5 min-h-[44px] rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {isResendingVerification ? (
                     <RefreshCw className="w-3 h-3 animate-spin" />
@@ -296,40 +264,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
         {authMethod === 'email' ? (
           /* Email Address Input */
           <div>
-            <label htmlFor="login-email" className="block text-xs sm:text-sm font-bold text-stone-700 mb-1.5">
+            <label htmlFor={`login-email-${variant}`} className="block text-xs sm:text-sm font-bold text-stone-700 mb-1.5">
               Email address
             </label>
             <div className="relative flex items-center">
               <Mail className="w-4 h-4 text-stone-400 absolute left-4 pointer-events-none" />
               <input
-                id="login-email"
+                id={`login-email-${variant}`}
                 type="email"
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 disabled={isLoading}
-                className="w-full pl-11 pr-4 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm xl:text-base text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
+                className="w-full pl-11 pr-4 py-3 sm:py-3.5 min-h-[44px] rounded-xl sm:rounded-2xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm xl:text-base text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
               />
             </div>
           </div>
         ) : (
           /* Phone Number Input */
           <div>
-            <label htmlFor="login-phone" className="block text-xs sm:text-sm font-bold text-stone-700 mb-1.5">
+            <label htmlFor={`login-phone-${variant}`} className="block text-xs sm:text-sm font-bold text-stone-700 mb-1.5">
               Phone number
             </label>
             <div className="relative flex items-center">
               <Phone className="w-4 h-4 text-stone-400 absolute left-4 pointer-events-none" />
               <input
-                id="login-phone"
+                id={`login-phone-${variant}`}
                 type="tel"
                 autoComplete="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+1 (555) 000-0000"
                 disabled={isLoading}
-                className="w-full pl-11 pr-4 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm xl:text-base text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
+                className="w-full pl-11 pr-4 py-3 sm:py-3.5 min-h-[44px] rounded-xl sm:rounded-2xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm xl:text-base text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
               />
             </div>
           </div>
@@ -337,26 +305,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
 
         {/* Password Input */}
         <div>
-          <label htmlFor="login-password" className="block text-xs sm:text-sm font-bold text-stone-700 mb-1.5">
+          <label htmlFor={`login-password-${variant}`} className="block text-xs sm:text-sm font-bold text-stone-700 mb-1.5">
             Password
           </label>
           <div className="relative flex items-center">
             <Lock className="w-4 h-4 text-stone-400 absolute left-4 pointer-events-none" />
             <input
-              id="login-password"
+              id={`login-password-${variant}`}
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               disabled={isLoading}
-              className="w-full pl-11 pr-11 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm xl:text-base text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
+              className="w-full pl-11 pr-11 py-3 sm:py-3.5 min-h-[44px] rounded-xl sm:rounded-2xl border border-stone-200 bg-[#FAF9F6] text-xs sm:text-sm xl:text-base text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:bg-white transition-all disabled:opacity-50"
             />
             <button
               type="button"
-              id="login-show-password"
+              id={`login-show-password-${variant}`}
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer p-1"
+              className="a11y-icon-button absolute right-2 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -372,7 +340,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
               role="checkbox"
               aria-checked={rememberMe}
               onClick={() => setRememberMe(!rememberMe)}
-              className={`w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
+              className={`relative w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md flex items-center justify-center transition-colors cursor-pointer before:absolute before:-inset-3.5 before:content-[''] ${
                 rememberMe ? 'bg-[#181C1A] text-white' : 'border border-stone-300 bg-white'
               }`}
             >
@@ -384,7 +352,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
           <button
             type="button"
             onClick={handleForgotPassword}
-            className="text-stone-600 hover:text-stone-900 font-semibold transition-colors cursor-pointer"
+            className="a11y-tap text-stone-600 hover:text-stone-900 font-semibold transition-colors cursor-pointer"
           >
             Forgot password?
           </button>
@@ -392,7 +360,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
 
         {/* Sign In Button */}
         <button
-          id="login-submit"
+          id={`login-submit-${variant}`}
           type="submit"
           disabled={isLoading}
           className="w-full py-3.5 sm:py-4 px-5 bg-[#181C1A] hover:bg-black disabled:bg-stone-600 text-white text-xs sm:text-sm xl:text-base font-bold rounded-xl sm:rounded-2xl transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-2.5 mt-2 cursor-pointer transform active:scale-[0.99]"
@@ -417,7 +385,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
           <div className="w-full border-t border-stone-200" />
         </div>
         <div className="relative flex justify-center text-[10.5px]">
-          <span className="bg-white px-3 text-stone-400 font-bold tracking-wider uppercase">
+          <span className="bg-white px-3 text-stone-600 font-bold tracking-wider uppercase">
             or continue with
           </span>
         </div>
@@ -440,8 +408,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
   );
 
   return (
-    <div className="min-h-screen bg-[#0E1012] font-sans selection:bg-[#BEF264] selection:text-black">
-      
+    <main className="min-h-screen bg-[#0E1012] font-sans selection:bg-[#BEF264] selection:text-black">
+      <h1 className="sr-only">Sign in to Zugora</h1>
+
       {/* ========================================================================= */}
       {/* MOBILE / TABLET VIEW (< lg): Fit-to-Screen Native Experience (NO SCROLL)  */}
       {/* ========================================================================= */}
@@ -475,7 +444,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
             <button
               type="button"
               onClick={() => onNavigate('/landing')}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-xs text-stone-300 hover:text-white hover:bg-white/15 transition-all text-xs font-medium cursor-pointer"
+              className="flex items-center gap-1 px-3 py-1.5 min-h-[44px] rounded-full border border-white/20 bg-white/5 backdrop-blur-xs text-stone-300 hover:text-white hover:bg-white/15 transition-all text-xs font-medium cursor-pointer"
               title="Return to Landing Page"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -484,7 +453,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
             <button
               type="button"
               onClick={() => onNavigate('/register')}
-              className="px-3.5 py-1.5 rounded-full border border-white/30 bg-white/10 backdrop-blur-xs text-white hover:bg-white hover:text-black transition-all text-xs font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 min-h-[44px] rounded-full border border-white/30 bg-white/10 backdrop-blur-xs text-white hover:bg-white hover:text-black transition-all text-xs font-semibold cursor-pointer"
             >
               Create account
             </button>
@@ -517,7 +486,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
               />
             </div>
             <span className="text-[11px] font-medium text-stone-300">
-              Join 10K+ chess learners improving daily • <span className="text-[#FBBF24]">4.8 ★</span>
+              Join 50,000+ chess learners improving daily • <span className="text-[#FBBF24]">4.9 ★</span>
             </span>
           </div>
         </div>
@@ -554,7 +523,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
                   <button
                     type="button"
                     onClick={() => onNavigate('/landing')}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 border border-stone-300/80 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 min-h-[44px] rounded-full text-xs font-semibold text-stone-600 hover:text-stone-900 hover:bg-stone-200/70 border border-stone-300/80 transition-all cursor-pointer"
                     title="Return to Landing Page"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
@@ -567,7 +536,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
                       type="button"
                       id="login-create-account-btn"
                       onClick={() => onNavigate('/register')}
-                      className="px-4 py-1.5 rounded-full border border-stone-800 text-stone-900 hover:bg-stone-900 hover:text-white transition-all text-xs font-semibold cursor-pointer"
+                      className="px-4 py-1.5 min-h-[44px] rounded-full border border-stone-800 text-stone-900 hover:bg-stone-900 hover:text-white transition-all text-xs font-semibold cursor-pointer"
                     >
                       Create account
                     </button>
@@ -663,7 +632,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
 
               {/* Bottom Left Copyright */}
               <div className="text-[11px] text-stone-400 relative z-10">
-                © {new Date().getFullYear()} Chess Coach AI. All rights reserved.
+                © {new Date().getFullYear()} Zugora. All rights reserved.
               </div>
             </div>
 
@@ -706,7 +675,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
                     <button
                       type="button"
                       onClick={handlePrevSlide}
-                      className="w-7 h-7 rounded-full border border-white/20 bg-black/30 backdrop-blur-xs flex items-center justify-center text-white/80 hover:text-white hover:border-white/50 transition-all cursor-pointer"
+                      className="a11y-icon-button rounded-full border border-white/20 bg-black/30 backdrop-blur-xs text-white/80 hover:text-white hover:border-white/50 transition-all cursor-pointer"
                       aria-label="Previous slide"
                     >
                       <ChevronLeft className="w-4 h-4" />
@@ -714,7 +683,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
                     <button
                       type="button"
                       onClick={handleNextSlide}
-                      className="w-7 h-7 rounded-full border border-white/20 bg-black/30 backdrop-blur-xs flex items-center justify-center text-white/80 hover:text-white hover:border-white/50 transition-all cursor-pointer"
+                      className="a11y-icon-button rounded-full border border-white/20 bg-black/30 backdrop-blur-xs text-white/80 hover:text-white hover:border-white/50 transition-all cursor-pointer"
                       aria-label="Next slide"
                     >
                       <ChevronRight className="w-4 h-4" />
@@ -747,16 +716,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
 
                   <div className="grid grid-cols-3 gap-2 divide-x divide-white/10 text-left">
                     <div className="pr-2">
-                      <div className="text-base sm:text-lg font-black text-white leading-none">10K+</div>
-                      <div className="text-[10px] text-stone-400 mt-1 font-medium">Active Learners</div>
+                      <div className="text-base sm:text-lg font-black text-white leading-none">50,000+</div>
+                      <div className="text-[10px] text-stone-400 mt-1 font-medium">Active Players</div>
                     </div>
                     <div className="px-2">
-                      <div className="text-base sm:text-lg font-black text-white leading-none">500K+</div>
-                      <div className="text-[10px] text-stone-400 mt-1 font-medium">Puzzles Solved</div>
+                      <div className="text-base sm:text-lg font-black text-white leading-none">2,400+</div>
+                      <div className="text-[10px] text-stone-400 mt-1 font-medium">Puzzles Available</div>
                     </div>
                     <div className="pl-2">
                       <div className="text-base sm:text-lg font-black text-white leading-none flex items-center gap-1">
-                        <span>4.8</span>
+                        <span>4.9</span>
                         <Star className="w-3.5 h-3.5 fill-[#FBBF24] text-[#FBBF24]" />
                       </div>
                       <div className="text-[10px] text-stone-400 mt-1 font-medium">User Rating</div>
@@ -802,6 +771,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, redirectTo }) 
         </div>
       </div>
 
-    </div>
+    </main>
   );
 };

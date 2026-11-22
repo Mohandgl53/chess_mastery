@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChessMasteryLogo } from '../components/brand/ChessMasteryLogo';
 import {
   Crown,
@@ -21,8 +21,6 @@ import {
   Shield,
   Menu,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -78,9 +76,18 @@ const MiniChessBoard: React.FC = () => {
   return (
     <div className="lp2-board-frame">
       <table className="lp2-chess-table">
+        <caption className="lp2-sr-only">Chess board preview</caption>
+        <thead className="lp2-sr-only">
+          <tr>
+            {files.map((file) => (
+              <th key={file} id={`lp2-file-${file}`} scope="col">{file}</th>
+            ))}
+          </tr>
+        </thead>
         <tbody>
           {ranks.map((rank, ri) => (
             <tr key={rank}>
+              <th className="lp2-sr-only" id={`lp2-rank-${rank}`} scope="row">{rank}</th>
               {files.map((file, fi) => {
                 const sq = `${file}${rank}`;
                 const isLight = (ri + fi) % 2 === 0;
@@ -89,6 +96,7 @@ const MiniChessBoard: React.FC = () => {
                 return (
                   <td
                     key={sq}
+                    headers={`lp2-file-${file} lp2-rank-${rank}`}
                     className={`lp2-chess-td ${isHighlight ? 'lp2-highlight-sq' : isLight ? 'lp2-light-sq' : 'lp2-dark-sq'}`}
                   >
                     {piece && (
@@ -173,13 +181,13 @@ const TestimonialCarousel: React.FC<{ testimonials: Array<{ quote: string; name:
   const [active, setActive] = useState(0);
   const total = testimonials.length;
   const prev = () => setActive(a => (a === 0 ? total - 1 : a - 1));
-  const next = () => setActive(a => (a === total - 1 ? 0 : a + 1));
+  const next = useCallback(() => setActive(a => (a === total - 1 ? 0 : a + 1)), [total]);
 
   useEffect(() => {
     if (!inView) return;
     const id = setInterval(next, 5000);
     return () => clearInterval(id);
-  }, [inView, total]);
+  }, [inView, total, next]);
 
   const t = testimonials[active];
   return (
@@ -231,7 +239,7 @@ const TestimonialCarousel: React.FC<{ testimonials: Array<{ quote: string; name:
             borderRadius: 10, padding: '6px 14px', textAlign: 'center',
           }}>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#81B64C' }}>{t.progress}</div>
-            <div style={{ fontSize: '0.65rem', color: '#7a6a60', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rating Gain</div>
+            <div style={{ fontSize: '0.65rem', color: '#a89080', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rating Gain</div>
           </div>
         </div>
       </div>
@@ -244,22 +252,33 @@ const TestimonialCarousel: React.FC<{ testimonials: Array<{ quote: string; name:
               key={i}
               onClick={() => setActive(i)}
               style={{
-                width: i === active ? 28 : 8, height: 8,
+                width: 44, height: 44,
                 borderRadius: 100,
-                background: i === active ? '#81B64C' : 'rgba(255,255,255,0.15)',
+                background: 'transparent',
                 border: 'none', cursor: 'pointer',
-                transition: 'width 0.3s ease, background 0.3s ease',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 0,
               }}
               aria-label={`Testimonial ${i + 1}`}
-            />
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: 'block',
+                  width: i === active ? 28 : 8, height: 8,
+                  borderRadius: 100,
+                  background: i === active ? '#81B64C' : 'rgba(255,255,255,0.35)',
+                  transition: 'width 0.3s ease, background 0.3s ease',
+                }}
+              />
+            </button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={prev}
             style={{
-              width: 36, height: 36, borderRadius: '50%',
+              width: 44, height: 44, borderRadius: '50%',
               background: 'rgba(255,255,255,0.07)',
               border: '1px solid rgba(255,255,255,0.15)',
               color: '#c4b09a', cursor: 'pointer',
@@ -273,7 +292,7 @@ const TestimonialCarousel: React.FC<{ testimonials: Array<{ quote: string; name:
           <button
             onClick={next}
             style={{
-              width: 36, height: 36, borderRadius: '50%',
+              width: 44, height: 44, borderRadius: '50%',
               background: 'rgba(129,182,76,0.18)',
               border: '1px solid rgba(129,182,76,0.35)',
               color: '#81B64C', cursor: 'pointer',
@@ -570,6 +589,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       border-collapse: collapse;
       table-layout: fixed;
     }
+    .lp2-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     .lp2-chess-td {
       width: var(--sq-size, 44px);
       height: var(--sq-size, 44px);
@@ -783,9 +813,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         gap: 20px;
       }
       .lp2-board-section {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 56px;
         text-align: center;
+        min-width: 0;
+      }
+      .lp2-board-section > * {
+        min-width: 0;
+      }
+      .lp2-board-section h2 {
+        overflow-wrap: anywhere;
+      }
+      .lp2-board-copy {
+        transform: none !important;
       }
       .lp2-board-features-list {
         display: inline-flex;
@@ -999,7 +1039,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('/login')}
               className="lp2-cta-ghost"
               id="landing-nav-sign-in"
-              style={{ padding: '8px 18px', borderRadius: 10, fontSize: '0.875rem' }}
+              style={{ padding: '8px 18px', borderRadius: 10, fontSize: '0.875rem', minHeight: 44 }}
             >
               Sign In
             </button>
@@ -1007,7 +1047,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               onClick={() => onNavigate('/register')}
               className="lp2-cta-primary"
               id="landing-nav-get-started"
-              style={{ padding: '9px 22px', borderRadius: 10, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 7 }}
+              style={{ padding: '9px 22px', borderRadius: 10, fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 7, minHeight: 44 }}
             >
               Get Started Free
               <ArrowRight size={15} />
@@ -1240,7 +1280,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                     {[...Array(5)].map((_,i) => <Star key={i} size={12} fill="#81B64C" color="#81B64C" />)}
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#81B64C', marginLeft: 4 }}>4.9</span>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#7a6a60' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#a89080' }}>
                     Trusted by <strong style={{ color: '#9a8a80' }}>50,000+</strong> chess players worldwide
                   </div>
                 </div>
@@ -1264,12 +1304,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 borderRadius: 16,
                 padding: '16px 20px',
               }}>
-                <div style={{ fontSize: '0.7rem', color: '#7a6a60', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                <div style={{ fontSize: '0.7rem', color: '#a89080', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
                   🎯 AI Coaching Session
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ fontSize: '1.9rem', fontWeight: 800, color: '#81B64C', fontFamily: "'Outfit', sans-serif" }}>94.2%</span>
-                  <span style={{ fontSize: '0.75rem', color: '#7a6a60' }}>accuracy</span>
+                  <span style={{ fontSize: '0.75rem', color: '#a89080' }}>accuracy</span>
                 </div>
                 <div style={{ marginTop: 10, height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ width: '94%', height: '100%', background: 'linear-gradient(90deg, #81B64C, #A3E635)', borderRadius: 4 }} />
@@ -1285,17 +1325,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                 borderRadius: 16,
                 padding: '16px 20px',
               }}>
-                <div style={{ fontSize: '0.7rem', color: '#7a6a60', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
+                <div style={{ fontSize: '0.7rem', color: '#a89080', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>
                   ♔ Rating Progress
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.65rem', color: '#7a6a60' }}>Joined</div>
+                    <div style={{ fontSize: '0.65rem', color: '#a89080' }}>Joined</div>
                     <div style={{ fontWeight: 800, color: '#F5F0E8', fontFamily: "'Outfit', sans-serif" }}>1150</div>
                   </div>
                   <div style={{ flex: 1, height: 2, background: 'linear-gradient(90deg, #38531D, #81B64C)', borderRadius: 2 }} />
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.65rem', color: '#7a6a60' }}>Now</div>
+                    <div style={{ fontSize: '0.65rem', color: '#a89080' }}>Now</div>
                     <div style={{ fontWeight: 800, color: '#81B64C', fontFamily: "'Outfit', sans-serif" }}>1480</div>
                   </div>
                 </div>
@@ -1319,7 +1359,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                   fontSize: '1.3rem', flexShrink: 0,
                 }}>♞</div>
                 <div>
-                  <div style={{ fontSize: '0.65rem', color: '#7a6a60', textTransform: 'uppercase', letterSpacing: '0.1em' }}>AI Best Move</div>
+                  <div style={{ fontSize: '0.65rem', color: '#a89080', textTransform: 'uppercase', letterSpacing: '0.1em' }}>AI Best Move</div>
                   <div style={{ fontWeight: 800, color: '#a78bfa', fontFamily: "'Outfit', sans-serif", fontSize: '1.05rem' }}>Nf3 → e5</div>
                   <div style={{ fontSize: '0.68rem', color: '#7a6a80' }}>+0.8 advantage</div>
                 </div>
@@ -1374,7 +1414,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
         ══════════════════════════════════════════════════ */}
         <section
           ref={boardRef as React.RefObject<HTMLElement>}
-          id="lp2-how-it-works"
+          id="lp2-live-board"
           className="lp2-section"
         >
           <div className="lp2-board-section">
@@ -1459,7 +1499,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
             </div>
 
             {/* Text content */}
-            <div style={{
+            <div className="lp2-board-copy" style={{
               opacity: boardInView ? 1 : 0,
               transform: boardInView ? 'translateX(0)' : 'translateX(36px)',
               transition: 'opacity 0.8s ease 0.25s, transform 0.8s ease 0.25s',
@@ -1543,7 +1583,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               Built for players who want to<br />
               <span style={{ color: '#81B64C' }}>actually improve.</span>
             </h2>
-            <p style={{ color: '#7a6a60', maxWidth: 520, margin: '0 auto', lineHeight: 1.7, fontSize: '0.95rem' }}>
+            <p style={{ color: '#a89080', maxWidth: 520, margin: '0 auto', lineHeight: 1.7, fontSize: '0.95rem' }}>
               Not another puzzle app. Zugora is a complete training ecosystem — from your opening repertoire to your endgame precision.
             </p>
           </div>
@@ -1641,7 +1681,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                   position: 'absolute', top: 22, right: 24,
                   fontFamily: "'Outfit', sans-serif",
                   fontSize: '2.4rem', fontWeight: 900,
-                  color: `${s.accent}15`,
+                  color: s.accent,
                   letterSpacing: '-0.04em',
                 }}>{s.step}</div>
                 <h3 style={{
@@ -1649,7 +1689,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
                   fontSize: '1.1rem', fontWeight: 700,
                   color: '#F5F0E8', marginBottom: 12,
                 }}>{s.title}</h3>
-                <p style={{ fontSize: '0.85rem', color: '#7a6a60', lineHeight: 1.7 }}>{s.desc}</p>
+                <p style={{ fontSize: '0.85rem', color: '#a89080', lineHeight: 1.7 }}>{s.desc}</p>
               </div>
             ))}
           </div>
@@ -1802,7 +1842,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
               ))}
             </div>
 
-            <div style={{ fontSize: '0.78rem', color: '#4a3a35' }}>
+            <div style={{ fontSize: '0.78rem', color: '#a89080' }}>
               © {new Date().getFullYear()} Zugora. All rights reserved.
             </div>
           </div>

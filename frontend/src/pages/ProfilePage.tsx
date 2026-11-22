@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { PlayerProfile as LocalPlayerProfile, RatingHistoryEntry } from '../types/user';
+import { PlayerProfile as LocalPlayerProfile } from '../types/user';
 import { useAuth } from '../auth/AuthProvider';
 import { gameApi, BackendGameDto, mapBackendGameToSavedGame } from '../services/api/gameApi';
 import { playerApi, BackendPlayerProfile } from '../services/api/playerApi';
@@ -22,12 +22,9 @@ import {
   Calendar,
   Upload,
   BarChart2,
-  Clock,
   Play,
   Loader2,
-  Trash2,
-  ArrowUpRight,
-  LogOut
+  Trash2
 } from 'lucide-react';
 
 interface ProfilePageProps {
@@ -56,7 +53,7 @@ const COUNTRY_OPTIONS = [
 ];
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile: initialProfile, onNavigate }) => {
-  const { user, profile: authProfile, refreshProfile, logout } = useAuth();
+  const { user, profile: authProfile, refreshProfile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -406,7 +403,7 @@ http://localhost:5173`;
         <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
 
         <div className="p-6 sm:p-8 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             {/* Left: Avatar & Identity Details */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
               {/* Clean Framed Avatar (NO intrusive hover in normal view) */}
@@ -462,7 +459,7 @@ http://localhost:5173`;
             </div>
 
             {/* Right: Action Buttons */}
-            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 shrink-0">
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 lg:shrink-0">
               <button
                 onClick={() => {
                   setEditName(profile.name || effectiveDisplayName);
@@ -488,7 +485,7 @@ http://localhost:5173`;
 
               <button
                 onClick={() => onNavigate('/play')}
-                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-900/40 transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
+                className="a11y-tap px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-lg shadow-emerald-900/40 transition-all flex items-center gap-2 cursor-pointer uppercase tracking-wider"
               >
                 <Play className="w-3.5 h-3.5 fill-white" />
                 <span>Play Match</span>
@@ -693,7 +690,7 @@ http://localhost:5173`;
           </div>
           <div className="mt-2">
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-display tabular-nums">
-              {streak} <span className="text-xs font-bold text-slate-400">Days</span>
+              {streak} <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Days</span>
             </div>
             <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
               Longest: <span className="font-bold text-slate-700 dark:text-zinc-300">{longestStreak} Days</span>
@@ -834,7 +831,7 @@ http://localhost:5173`;
                         <span className="font-black text-sm text-slate-900 dark:text-white tabular-nums">
                           {item.rating}
                         </span>
-                        <span className="text-[10px] text-slate-400 ml-1">Elo</span>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 ml-1">Elo</span>
                       </div>
                     </div>
                   </div>

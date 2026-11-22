@@ -14,27 +14,18 @@ import {
 import {
   Target,
   AlertTriangle,
-  Zap,
-  BookOpen,
   Award,
   Sparkles,
   ArrowRight,
   RotateCcw,
   CheckCircle2,
   HelpCircle,
-  TrendingUp,
   Brain,
-  ShieldAlert,
-  Calendar,
-  Layers,
-  Flame,
-  Check,
-  X,
   ArrowLeft
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { sanitizeInternalReturnUrl } from '../utils/analyzeUtils';
-import { ALL_PRACTICE_DRILLS, PracticeDrillDefinition } from '../data/practiceDrills';
+import { ALL_PRACTICE_DRILLS } from '../data/practiceDrills';
 
 interface PracticePageProps {
   userProfile: PlayerProfile;
@@ -56,19 +47,20 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
 
   // Board State
   const [chess] = useState<Chess>(() => new Chess());
-  const [boardFen, setBoardFen] = useState<string>('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+  const [_boardFen, setBoardFen] = useState<string>('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
   const [, setRenderTrigger] = useState(0);
 
   // Attempt Result Feedback
   const [lastAttemptResult, setLastAttemptResult] = useState<RecordAttemptResponse | null>(null);
   const [attemptFeedback, setAttemptFeedback] = useState<string | null>(null);
   const [isSolved, setIsSolved] = useState(false);
-  const [attemptCount, setAttemptCount] = useState(0);
+  const [_attemptCount, setAttemptCount] = useState(0);
 
   // Hints
   const [activeHintLevel, setActiveHintLevel] = useState<number>(0);
   const [usedHintInCurrentPuzzle, setUsedHintInCurrentPuzzle] = useState(false);
-  const startTimeRef = useRef<number>(Date.now());
+  // Reset to Date.now() whenever a puzzle loads; no need to read a clock during render.
+  const startTimeRef = useRef<number>(0);
 
   // Extract ?theme= parameter if present in currentRoute
   const extractQueryTheme = useCallback((): string | undefined => {
@@ -100,36 +92,9 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
     });
   }, [selectedCategory, selectedRatingTier]);
 
-  // Load dashboard overview on mount
-  const loadDashboard = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await practiceApi.getDashboard();
-      setDashboard(data);
-
-      // Check if user came with explicit theme query param
-      // Note: We do NOT auto-resume activeSession from dashboard because
-      // the dashboard data has no puzzle — we'd get a blank screen.
-      // Instead we show a "Resume Session" card in the dashboard view.
-      const queryTheme = extractQueryTheme();
-      if (queryTheme) {
-        await startNewSession(queryTheme);
-      }
-    } catch (err: any) {
-      console.error('Error loading practice dashboard:', err);
-      setError(err?.message || 'Failed to load practice training data');
-    } finally {
-      setLoading(false);
-    }
-  }, [extractQueryTheme]);
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  // Start or resume a training session
-  const startNewSession = async (targetTheme?: string) => {
+  // Start or resume a training session. Declared before loadDashboard so it
+  // can be included in that callback's dependency list without a TDZ hazard.
+  const startNewSession = useCallback(async (targetTheme?: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -187,7 +152,35 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
     } finally {
       setLoading(false);
     }
-  };
+  }, [chess, userProfile.id]);
+
+  // Load dashboard overview on mount
+  const loadDashboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await practiceApi.getDashboard();
+      setDashboard(data);
+
+      // Check if user came with explicit theme query param
+      // Note: We do NOT auto-resume activeSession from dashboard because
+      // the dashboard data has no puzzle — we'd get a blank screen.
+      // Instead we show a "Resume Session" card in the dashboard view.
+      const queryTheme = extractQueryTheme();
+      if (queryTheme) {
+        await startNewSession(queryTheme);
+      }
+    } catch (err: any) {
+      console.error('Error loading practice dashboard:', err);
+      setError(err?.message || 'Failed to load practice training data');
+    } finally {
+      setLoading(false);
+    }
+  }, [extractQueryTheme, startNewSession]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
   // Handle player's piece move on the chessboard
   const handleBoardMove = async ({ from, to }: { from: string; to: string }): Promise<boolean> => {
@@ -368,20 +361,20 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6 text-zinc-100">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-6 text-slate-900 dark:text-zinc-100">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1E222B]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
               <Brain className="w-3.5 h-3.5" />
               Adaptive Practice & Mastery
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-white font-display tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-display tracking-tight">
             Personalized Tactical Training
           </h1>
-          <p className="text-xs text-zinc-400 mt-0.5 max-w-2xl">
+          <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5 max-w-2xl">
             Real-time adaptive practice generated directly from your games, weaknesses, and Leitner spaced-repetition schedules.
           </p>
         </div>
@@ -393,7 +386,7 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
               setCurrentPuzzle(null);
               loadDashboard();
             }}
-            className="self-start sm:self-auto px-3 py-1.5 rounded-lg border border-[#262B36] bg-[#14171E] text-zinc-300 hover:text-white hover:bg-[#1A1E27] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="a11y-tap self-start sm:self-auto px-3 py-1.5 rounded-lg border border-slate-300 dark:border-[#262B36] bg-white dark:bg-[#14171E] text-slate-700 dark:text-zinc-300 hover:text-slate-900 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-[#1A1E27] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Switch Drill</span>
@@ -598,7 +591,7 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
             <h2 className="text-xl font-black text-slate-900 dark:text-white">
               Training Session Completed!
             </h2>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">
+            <p className="text-xs text-slate-600 dark:text-zinc-400">
               Your practice results have updated your Player Memory, Theme Mastery, and Leitner Spaced-Repetition intervals.
             </p>
           </div>
@@ -651,14 +644,14 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
         <div className="space-y-6">
           {/* Resume In-Progress Session Banner */}
           {dashboard?.activeSession && (
-            <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-full bg-amber-950/60 border border-amber-500/40 flex items-center justify-center shrink-0">
                   <RotateCcw className="w-4 h-4 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-amber-300">Session In Progress</p>
-                  <p className="text-[11px] text-zinc-300 mt-0.5">
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300">Session In Progress</p>
+                  <p className="text-[11px] text-slate-700 dark:text-zinc-300 mt-0.5">
                     You have an unfinished {dashboard.activeSession.sessionType.replace('_', ' ').toLowerCase()} session ({dashboard.activeSession.completedItemCount}/{dashboard.activeSession.plannedItemCount} puzzles done). Resume to continue earning mastery points.
                   </p>
                 </div>
@@ -676,13 +669,13 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
                       setLoading(false);
                     }
                   }}
-                  className="px-3 py-2 rounded-xl border border-[#262B36] text-zinc-400 hover:text-white hover:bg-[#1A1E27] text-xs font-semibold transition-colors"
+                  className="a11y-tap px-3 py-2 rounded-xl border border-slate-300 dark:border-[#262B36] text-slate-700 dark:text-zinc-300 hover:text-slate-900 hover:bg-slate-50 dark:hover:text-white dark:hover:bg-[#1A1E27] text-xs font-semibold transition-colors"
                 >
                   Complete Early
                 </button>
                 <button
                   onClick={() => startNewSession(dashboard.activeSession!.targetTheme)}
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+                  className="a11y-tap px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 dark:bg-amber-600 dark:hover:bg-amber-500 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
                 >
                   <span>Resume Session</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -708,14 +701,14 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
                 </div>
 
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                  Primary Focus: <span className="text-[#81B64C] dark:text-emerald-400">{plan.themeTitle}</span>
+                  Primary Focus: <span className="text-[#3F6B1B] dark:text-emerald-400">{plan.themeTitle}</span>
                 </h2>
 
                 <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
                   {plan.reason}
                 </p>
 
-                <div className="flex items-center gap-4 pt-1 text-xs text-slate-500 dark:text-zinc-400">
+                <div className="flex items-center gap-4 pt-1 text-xs text-slate-600 dark:text-zinc-400">
                   <span>Target Difficulty: <strong className="text-slate-900 dark:text-white">{plan.initialDifficulty}</strong></span>
                   <span>•</span>
                   <span>Items: <strong className="text-slate-900 dark:text-white">{plan.plannedItemCount} Puzzles</strong></span>
@@ -740,18 +733,18 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
               <div>
                 <div className="flex items-center gap-2">
                   <Target className="w-4 h-4 text-[#81B64C]" />
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                  <h2 className="text-base font-black text-slate-900 dark:text-white">
                     Chess Practice Drills & Training Modules
-                  </h3>
+                  </h2>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">
                   Master all phases: Openings, Middlegames, Technical Endgames, and Combinations.
                 </p>
               </div>
 
               {/* Rating Tier Filter Pills */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 mr-1 hidden md:inline">Rating:</span>
+                <span className="text-[11px] font-bold text-slate-600 dark:text-zinc-400 mr-1 hidden md:inline">Rating:</span>
                 {[
                   { id: 'ALL', label: 'All Ratings' },
                   { id: 'NOVICE', label: 'Novice (400-900)' },
@@ -762,9 +755,9 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
                   <button
                     key={tier.id}
                     onClick={() => setSelectedRatingTier(tier.id as any)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    className={`a11y-tab px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer whitespace-nowrap ${
                       selectedRatingTier === tier.id
-                        ? 'bg-[#81B64C] text-white shadow-xs'
+                        ? 'bg-[#047857] text-white shadow-xs'
                         : 'bg-white dark:bg-[#161922] text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-[#262B36] hover:bg-slate-100 dark:hover:bg-[#1E2330]'
                     }`}
                   >
@@ -786,7 +779,7 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`a11y-tab px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     selectedCategory === cat.id
                       ? 'bg-slate-900 text-white dark:bg-white dark:text-zinc-950 shadow-xs'
                       : 'bg-white dark:bg-[#141822] text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-[#273042] hover:bg-slate-100 dark:hover:bg-[#1C2230]'
@@ -845,9 +838,9 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
                         </div>
                       </div>
 
-                      <h4 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-[#81B64C] dark:group-hover:text-emerald-400 transition-colors mb-1">
+                      <h3 className="text-xs font-black text-slate-900 dark:text-white group-hover:text-[#3F6B1B] dark:group-hover:text-emerald-400 transition-colors mb-1">
                         {drill.title}
-                      </h4>
+                      </h3>
                       <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-snug mb-3 line-clamp-2">
                         {drill.desc}
                       </p>
@@ -866,7 +859,7 @@ export const PracticePage: React.FC<PracticePageProps> = ({ userProfile, onNavig
                           style={{ width: `${isUnstarted ? 3 : Math.min(100, Math.max(5, score))}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-zinc-500 mt-2">
+                      <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-zinc-400 mt-2">
                         <span>{attempts > 0 ? `${attempts} practiced` : 'Click to launch drill'}</span>
                         <span className="font-bold text-slate-700 dark:text-zinc-300">{attempts > 0 ? `${accuracy}% acc` : ''}</span>
                       </div>

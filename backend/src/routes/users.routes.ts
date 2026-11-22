@@ -8,4 +8,4 @@ export const userRoutes = Router();
 
 // /profile requires authentication — derives user from req.user.id set by session
 userRoutes.get('/profile', requireAuth, getCurrentUserProfile);
-userRoutes.get('/:userId', validateParams(userIdParamSchema), getUserById);
+userRoutes.get('/:userId', requireAuth, validateParams(userIdParamSchema), getUserById);

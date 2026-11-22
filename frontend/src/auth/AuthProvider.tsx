@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import type { AuthUser, AuthProfile, AuthSession, LoginInput, RegisterInput } from '../types/auth';
 import { authApi } from '../services/api/authApi';
 
@@ -115,29 +115,27 @@ function ApiAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const sessionRestoreStarted = useRef(false);
 
-  // On mount: restore session from server (GET /api/auth/me)
+  // On mount: restore session from server (GET /api/auth/me).
+  // React StrictMode runs mount effects twice in development; the ref keeps
+  // that from producing two identical 401s for unauthenticated visitors.
   useEffect(() => {
-    let cancelled = false;
+    if (sessionRestoreStarted.current) return;
+    sessionRestoreStarted.current = true;
 
     authApi.me()
       .then((session) => {
-        if (!cancelled) {
-          if (session) {
-            setUser(session.user);
-            setProfile(session.profile);
-          }
-          setIsLoading(false);
+        if (session) {
+          setUser(session.user);
+          setProfile(session.profile);
         }
+        setIsLoading(false);
       })
       .catch(() => {
-        if (!cancelled) {
-          // Network error or backend unavailable — treat as unauthenticated
-          setIsLoading(false);
-        }
+        // Network error or backend unavailable — treat as unauthenticated
+        setIsLoading(false);
       });
-
-    return () => { cancelled = true; };
   }, []);
 
   const applySession = useCallback((session: AuthSession) => {
@@ -150,10 +148,12 @@ function ApiAuthProvider({ children }: { children: React.ReactNode }) {
     applySession(session);
   }, [applySession]);
 
-  const register = useCallback(async (input: RegisterInput) => {
+  const register = useCallback(async (input: RegisterInput): Promise<void> => {
     const { confirmPassword: _, ...apiInput } = input;
     const session = await authApi.register(apiInput);
-    applySession(session);
+    if (session.tokens && session.user?.emailVerified) {
+      applySession(session);
+    }
   }, [applySession]);
 
   const googleLogin = useCallback(async (credential: string) => {

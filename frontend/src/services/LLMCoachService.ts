@@ -162,7 +162,7 @@ export class LLMCoachService implements ICoachService {
         // Phase 8: Pass full Stockfish context for personalized, grounded coaching
         evalBefore: classificationData.evalBefore,
         evalAfter: classificationData.evalAfter,
-        evalDelta: Math.round(classificationData.evalDelta * 100), // convert to centipawns
+        evalDelta: classificationData.evalDelta, // already centipawns from the engine
         principalVariation: classificationData.principalVariation,
         candidateMoves: candidates.map((c) => ({ san: c.san, score: c.score, explanation: c.explanation })),
         openingName: opening?.name,
@@ -195,8 +195,8 @@ export class LLMCoachService implements ICoachService {
       return {
         id: `fb-${Date.now()}`,
         type: 'COACH_UNAVAILABLE',
-        title: 'AI Coach Unavailable (Engine Analysis)',
-        content: `${content} [AI coach unavailable — showing local Stockfish evaluation]`,
+        title: 'Local Coach — Engine Analysis',
+        content: `${content} (Local mode: powered by Stockfish. Configure an AI provider for richer explanations.)`,
         lesson: bestMove ? `Compare ${moveSan} with the engine line ${bestMove}.` : 'Focus on active piece coordination and king safety.',
         suggestedMove: bestMove,
         timestamp: Date.now(),
@@ -222,10 +222,10 @@ export class LLMCoachService implements ICoachService {
       return {
         id: `hint-${Date.now()}`,
         type: 'COACH_UNAVAILABLE',
-        title: 'AI Coach Unavailable (Engine Hint)',
+        title: 'Local Coach — Engine Hint',
         content: best
-          ? `Local engine suggests ${best.san}. ${best.explanation} [AI coach unavailable — showing local engine hint]`
-          : 'Focus on developing your pieces toward central control. [AI coach unavailable]',
+          ? `Local engine suggests ${best.san}. ${best.explanation}`
+          : 'Focus on developing your pieces toward central control.',
         suggestedMove: best?.san,
         timestamp: Date.now()
       };
@@ -255,9 +255,9 @@ export class LLMCoachService implements ICoachService {
       return {
         id: `chat-${Date.now()}`,
         type: 'COACH_UNAVAILABLE',
-        title: 'AI Coach Unavailable',
-        content: 'The AI coach is currently unavailable. Focus on fundamental principles: king safety, piece coordination, and fighting for key central outposts. [AI coach unavailable — showing generic advice]',
-        lesson: 'Every move must have a concrete purpose. The AI coach will return when the backend is reachable.',
+        title: 'Local Coach — Quick Guidance',
+        content: 'Focus on fundamental principles: king safety, piece coordination, and fighting for key central outposts. (Local mode — configure an AI provider for full conversational coaching.)',
+        lesson: 'Every move must have a concrete purpose. Ask about a specific position to get engine-backed guidance.',
         timestamp: Date.now()
       };
     }

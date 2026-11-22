@@ -84,6 +84,10 @@ CLIENT_URL="http://localhost:5173"
 JWT_SECRET=chess_mastery_secure_jwt_secret_key_change_in_production_2026
 JWT_EXPIRES_IN=15m
 
+# Local seed account (only usable for login when verification is disabled)
+DEV_SEED_PASSWORD=test123
+REQUIRE_EMAIL_VERIFICATION=false
+
 # Google OAuth 2.0 / OpenID Connect (Optional for Google Sign-In)
 # GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 
@@ -171,10 +175,11 @@ npm run dev:frontend
 ### Step 6: Open the App & Log In
 
 1. Open your browser and navigate to: **[http://localhost:5173](http://localhost:5173)**
-2. You can either register a new account or sign in with the pre-seeded administrator account:
-   - **Email:** `dev@chesscoach.local`
-   - **Password:** `test123`
-   - **Role:** `ADMIN` (has access to `/api/admin/users`, `/api/admin/system`, and admin dashboards)
+2. Register a new account, or create a local verified administrator:
+   - Set `DEV_SEED_PASSWORD=test123` and `REQUIRE_EMAIL_VERIFICATION=false` in `backend/.env`
+   - Run `npm run prisma:seed`
+   - Sign in with `dev@chesscoach.local` / `test123`
+   - When `REQUIRE_EMAIL_VERIFICATION=true` (the default), registration requires the emailed verification link; the seeded dev user is not usable until verified.
 3. Enjoy playing with Stockfish 19, practicing tactical drills, taking curriculum masterclasses, and chatting with the AI Chess Coach!
 
 ---
@@ -184,14 +189,20 @@ npm run dev:frontend
 To verify that everything is working properly on your system:
 
 ```bash
-# Run all backend unit, integration & security tests (244 tests)
+# Run all backend unit, integration & security tests (331 tests)
 npm run test:backend
 
-# Run frontend tests (48 tests)
+# Run frontend tests (87 tests)
 npm run test:frontend
 
 # Run all tests together
 npm test
+
+# Lint frontend sources
+npm run lint:frontend
+
+# Run Playwright end-to-end suite (requires both dev servers running)
+npm run test:e2e
 ```
 
 ---

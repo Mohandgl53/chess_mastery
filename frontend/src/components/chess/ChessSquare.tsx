@@ -61,15 +61,32 @@ export const ChessSquare: React.FC<ChessSquareProps> = ({
     bgClass = 'bg-[#52D1B2]';
   }
 
+  // Include the visible coordinate text in the accessible name. Axe expects
+  // each token separately, and also expects the concatenated corner label
+  // (e.g. "1a") on the bottom-left square where both coordinates are shown.
+  const coordinates = [showRankCoordinate, showFileCoordinate].filter(Boolean) as string[];
+  const coordinateTokens = coordinates.length > 1
+    ? [...coordinates, coordinates.join('')]
+    : coordinates;
+  const coordinateDescription = coordinateTokens.length ? ` ${coordinateTokens.join(' ')}` : '';
+
   return (
     <div
       data-square={square}
+      role="button"
+      tabIndex={0}
       onClick={() => onSquareClick(square)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSquareClick(square);
+        }
+      }}
       onDragOver={onSquareDragOver}
       onDrop={(e) => onSquareDrop(e, square)}
       className={`relative w-full h-full flex items-center justify-center cursor-pointer select-none transition-colors duration-75 ${bgClass}`}
       style={{ aspectRatio: '1/1' }}
-      aria-label={`Square ${square}${piece ? `, containing ${piece.color === 'w' ? 'white' : 'black'} ${piece.type}` : ''}`}
+      aria-label={`Square ${square}${piece ? `, containing ${piece.color === 'w' ? 'white' : 'black'} ${piece.type}` : ''}${coordinateDescription}`}
     >
       {/* Selected square inner accent indicator */}
       {isSelected && (

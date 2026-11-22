@@ -1,4 +1,4 @@
-import { Chess, Square, PieceSymbol, Color } from 'chess.js';
+import { Chess, Square, Color } from 'chess.js';
 import { MoveRecord, MoveClassification } from '../types/chess';
 import { SavedGame } from '../types/game';
 
@@ -107,12 +107,11 @@ export function formatThemeLabel(theme?: string): string {
  * Evaluates real board coordinates, attacks, defenses, and pin rays without inventing data.
  */
 export function detectChessTheme(
-  fenBefore: string,
+  _fenBefore: string,
   fenAfter: string,
   move: MoveRecord
 ): string | undefined {
   try {
-    const chessBefore = new Chess(fenBefore);
     const chessAfter = new Chess(fenAfter);
     const movingColor: Color = move.color;
     const opponentColor: Color = movingColor === 'w' ? 'b' : 'w';
